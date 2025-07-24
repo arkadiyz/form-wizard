@@ -11,37 +11,29 @@ export interface ChipOption {
 }
 
 export interface ChipsProps {
-  label: string;
+  label?: string;
   options: ChipOption[];
   selectedValues?: string[];
-  placeholder?: string;
-  error?: string;
-  hint?: string;
-  isRequired?: boolean;
-  disabled?: boolean;
+  onSelectionChange?: (values: string[]) => void;
   maxSelections?: number;
-  allowCustomChips?: boolean;
-  onSelectionChange?: (selectedValues: string[]) => void;
-  onValidationTrigger?: () => void;
+  hint?: string;
   dir?: 'ltr' | 'rtl';
   className?: string;
+  error?: string;
+  isRequired?: boolean;
 }
 
 export const Chips: React.FC<ChipsProps> = ({
   label,
   options,
   selectedValues = [],
-  placeholder = 'Add skills...',
-  error,
-  hint,
-  isRequired = false,
-  disabled = false,
-  maxSelections,
-  allowCustomChips = false,
   onSelectionChange,
-  onValidationTrigger,
+  maxSelections,
+  hint,
   dir = 'ltr',
   className,
+  error,
+  isRequired = false,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -92,15 +84,15 @@ export const Chips: React.FC<ChipsProps> = ({
   const handleInputBlur = () => {
     if (!hasInteracted) {
       setHasInteracted(true);
-      onValidationTrigger?.();
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && inputValue.trim()) {
       e.preventDefault();
-      if (allowCustomChips && canAddMore) {
-        addCustomChip(inputValue.trim());
+      // For now, just add the input as a chip if allowed
+      if (canAddMore) {
+        addChip(inputValue.trim());
       }
     } else if (e.key === 'Backspace' && !inputValue && selectedValues.length > 0) {
       removeChip(selectedValues[selectedValues.length - 1]);
@@ -114,21 +106,12 @@ export const Chips: React.FC<ChipsProps> = ({
     onSelectionChange?.(newValues);
     setInputValue('');
     setIsOpen(false);
-    onValidationTrigger?.();
     inputRef.current?.focus();
-  };
-
-  const addCustomChip = (label: string) => {
-    if (!allowCustomChips || !canAddMore) return;
-
-    const customValue = `custom_${Date.now()}`;
-    addChip(customValue);
   };
 
   const removeChip = (valueToRemove: string) => {
     const newValues = selectedValues.filter((value) => value !== valueToRemove);
     onSelectionChange?.(newValues);
-    onValidationTrigger?.();
     inputRef.current?.focus();
   };
 
@@ -161,16 +144,14 @@ export const Chips: React.FC<ChipsProps> = ({
             return (
               <span key={value} className={`${styles.chip} ${category ? styles[category] : ''}`}>
                 <span className={styles.chipLabel}>{getChipLabel(value)}</span>
-                {!disabled && (
-                  <button
-                    type="button"
-                    className={styles.removeButton}
-                    onClick={() => removeChip(value)}
-                    aria-label={`Remove ${getChipLabel(value)}`}
-                  >
-                    ×
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className={styles.removeButton}
+                  onClick={() => removeChip(value)}
+                  aria-label={`Remove ${getChipLabel(value)}`}
+                >
+                  ×
+                </button>
               </span>
             );
           })}
@@ -180,12 +161,12 @@ export const Chips: React.FC<ChipsProps> = ({
               ref={inputRef}
               type="text"
               value={inputValue}
-              placeholder={selectedValues.length === 0 ? placeholder : ''}
+              placeholder={selectedValues.length === 0 ? 'Add skills...' : ''}
               onChange={handleInputChange}
               onFocus={handleInputFocus}
               onBlur={handleInputBlur}
               onKeyDown={handleKeyDown}
-              disabled={disabled}
+              disabled={false}
               className={styles.input}
             />
           )}

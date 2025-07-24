@@ -26,3 +26,24 @@ export const PersonalInfoSchema = z.object({
 });
 
 export type PersonalInfo = z.infer<typeof PersonalInfoSchema>;
+
+// Job Interest Schema
+export const JobInterestSchema = z.object({
+  categoryId: z.string().min(1, 'Please select a job category!'),
+  roleIds: z.array(z.string()).min(1, 'Please select a job role!'),
+  locationId: z.string().min(1, 'Please select a location!'),
+  skills: z.array(z.string()).min(1, 'Please add at least one skill!'),
+});
+
+export type JobInterest = z.infer<typeof JobInterestSchema>;
+
+// Notification Schema
+export const NotificationSchema = z.object({
+  email: z.boolean(),
+  phone: z.boolean(),
+  call: z.boolean(),
+  sms: z.boolean(),
+  whatsapp: z.boolean(),
+});
+
+export type NotificationSettings = z.infer<typeof NotificationSchema>;

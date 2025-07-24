@@ -10,7 +10,7 @@ export interface DropdownOption {
 }
 
 export interface DropdownProps {
-  label: string;
+  label?: string;
   options: DropdownOption[];
   value?: string;
   placeholder?: string;
@@ -19,6 +19,7 @@ export interface DropdownProps {
   isRequired?: boolean;
   disabled?: boolean;
   onValueChange?: (value: string) => void;
+  onSelectionChange?: (value: string) => void;
   onValidationTrigger?: () => void;
   dir?: 'ltr' | 'rtl';
   className?: string;
@@ -34,6 +35,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   isRequired = false,
   disabled = false,
   onValueChange,
+  onSelectionChange,
   onValidationTrigger,
   dir = 'ltr',
   className,
@@ -73,6 +75,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
     }
 
     onValueChange?.(optionValue);
+    onSelectionChange?.(optionValue);
     setIsOpen(false);
     onValidationTrigger?.();
   };

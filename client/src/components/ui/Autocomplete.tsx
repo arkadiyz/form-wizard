@@ -11,48 +11,42 @@ export interface AutocompleteOption {
 }
 
 export interface AutocompleteProps {
-  label: string;
-  options: AutocompleteOption[];
-  value?: string;
+  label?: string;
   placeholder?: string;
+  options: AutocompleteOption[];
+  onSelectionChange?: (value: string | string[]) => void;
+  isRequired?: boolean;
   error?: string;
   hint?: string;
-  isRequired?: boolean;
-  disabled?: boolean;
-  minSearchLength?: number;
-  maxSuggestions?: number;
-  onValueChange?: (value: string) => void;
-  onValidationTrigger?: () => void;
   dir?: 'ltr' | 'rtl';
-  className?: string;
-  highlightMatch?: boolean;
+  multiSelect?: boolean;
+  maxSelections?: number;
+  isDisabled?: boolean;
 }
-
 export const Autocomplete: React.FC<AutocompleteProps> = ({
   label,
-  options,
-  value = '',
   placeholder = 'Type to search...',
+  options,
+  onSelectionChange,
+  isRequired = false,
   error,
   hint,
-  isRequired = false,
-  disabled = false,
-  minSearchLength = 3,
-  maxSuggestions = 5,
-  onValueChange,
-  onValidationTrigger,
   dir = 'ltr',
-  className,
-  highlightMatch = true,
+  multiSelect = false,
+  maxSelections,
+  isDisabled = false,
 }) => {
-  const [inputValue, setInputValue] = useState(value);
+  const [inputValue, setInputValue] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [selectedValues, setSelectedValues] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
   const showError = hasInteracted && error;
+  const minSearchLength = 3;
+  const maxSuggestions = 5;
 
   // Filter options based on input
   const filteredOptions = useMemo(() => {
@@ -68,11 +62,11 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
     );
 
     return filtered.slice(0, maxSuggestions);
-  }, [inputValue, options, minSearchLength, maxSuggestions]);
+  }, [inputValue, options]);
 
   useEffect(() => {
-    setInputValue(value);
-  }, [value]);
+    setInputValue('');
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -97,10 +91,8 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
     setIsOpen(newValue.length >= minSearchLength);
     setSelectedIndex(-1);
 
-    onValueChange?.(newValue);
-
     if (hasInteracted) {
-      onValidationTrigger?.();
+      // Trigger validation if needed
     }
   };
 
@@ -116,16 +108,23 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
   const handleInputBlur = () => {
     if (!hasInteracted) {
       setHasInteracted(true);
-      onValidationTrigger?.();
     }
   };
 
   const handleOptionSelect = (option: AutocompleteOption) => {
-    setInputValue(option.label);
+    if (multiSelect) {
+      const newValues = [...selectedValues, option.value];
+      if (maxSelections && newValues.length > maxSelections) return;
+
+      setSelectedValues(newValues);
+      onSelectionChange?.(newValues);
+    } else {
+      setInputValue(option.label);
+      onSelectionChange?.(option.value);
+    }
+
     setIsOpen(false);
     setSelectedIndex(-1);
-    onValueChange?.(option.value);
-    onValidationTrigger?.();
     inputRef.current?.focus();
   };
 
@@ -156,16 +155,14 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
 
   const handleClear = () => {
     setInputValue('');
+    setSelectedValues([]);
     setIsOpen(false);
-    onValueChange?.('');
+    onSelectionChange?.(multiSelect ? [] : '');
     inputRef.current?.focus();
-    if (hasInteracted) {
-      onValidationTrigger?.();
-    }
   };
 
   const highlightText = (text: string, search: string) => {
-    if (!highlightMatch || !search) return text;
+    if (!search) return text;
 
     const regex = new RegExp(`(${search})`, 'gi');
     const parts = text.split(regex);
@@ -182,11 +179,38 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
   };
 
   return (
-    <div className={`${styles.autocompleteWrapper} ${className || ''}`} dir={dir}>
-      <label className={styles.label}>
-        {label}
-        {isRequired && <span className={styles.required}>*</span>}
-      </label>
+    <div className={`${styles.autocompleteWrapper}`} dir={dir}>
+      {label && (
+        <label className={styles.label}>
+          {label}
+          {isRequired && <span className={styles.required}>*</span>}
+        </label>
+      )}
+
+      {/* Show selected items in multiSelect mode */}
+      {multiSelect && selectedValues.length > 0 && (
+        <div className={styles.selectedItems}>
+          {selectedValues.map((value) => {
+            const option = options.find((opt) => opt.value === value);
+            return option ? (
+              <span key={value} className={styles.selectedItem}>
+                {option.label}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newValues = selectedValues.filter((v) => v !== value);
+                    setSelectedValues(newValues);
+                    onSelectionChange?.(newValues);
+                  }}
+                  className={styles.removeItem}
+                >
+                  ×
+                </button>
+              </span>
+            ) : null;
+          })}
+        </div>
+      )}
 
       <div className={styles.inputContainer}>
         <input
@@ -198,7 +222,7 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
           onFocus={handleInputFocus}
           onBlur={handleInputBlur}
           onKeyDown={handleKeyDown}
-          disabled={disabled}
+          disabled={isDisabled}
           className={`${styles.input} ${showError ? styles.error : ''}`}
           aria-expanded={isOpen}
           aria-haspopup="listbox"
@@ -206,7 +230,7 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
           role="combobox"
         />
 
-        {inputValue && !disabled && (
+        {(inputValue || selectedValues.length > 0) && !isDisabled && (
           <button
             type="button"
             className={styles.clearButton}

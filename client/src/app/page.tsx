@@ -4,6 +4,7 @@ import React from 'react';
 import { FormWizard } from '../components/form/FormWizard';
 import { StepContainer } from '../components/form/StepContainer';
 import { PersonalInfoStep } from '../components/form/steps/PersonalInfoStep';
+import { JobInterestStep } from '../components/form/steps/JobInterestStep';
 import { useFormStore } from '../store/formStore';
 import { useTranslation } from '../lib/i18n';
 
@@ -54,9 +55,7 @@ export default function HomePage() {
             onNext={handleNext}
             onBack={handleBack}
           >
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
-              Job Interest Step - Coming Soon
-            </div>
+            <JobInterestStep onNext={handleNext} onBack={handleBack} />
           </StepContainer>
         );
       case 3:
