@@ -1,0 +1,15 @@
+
+gitignore
+Copy
+Edit
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.log
+*.db
+*.sqlite
+
+# אפשר גם להוסיף הגנה ל־appsettings עם מידע פרטי:
+appsettings.Development.json
