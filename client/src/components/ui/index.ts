@@ -9,3 +9,6 @@ export type { DropdownProps, DropdownOption } from './Dropdown';
 
 export { Toggle } from './Toggle';
 export type { ToggleProps } from './Toggle';
+
+export { Autocomplete } from './Autocomplete';
+export type { AutocompleteProps, AutocompleteOption } from './Autocomplete';
