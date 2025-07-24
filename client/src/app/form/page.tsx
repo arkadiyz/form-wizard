@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { FormWizard } from '../components/form/FormWizard';
-import { StepContainer } from '../components/form/StepContainer';
-import { PersonalInfoStep } from '../components/form/steps/PersonalInfoStep';
-import { useFormStore } from '../store/formStore';
-import { useTranslation } from '../lib/i18n';
+import { FormWizard } from '../../components/form/FormWizard';
+import { StepContainer } from '../../components/form/StepContainer';
+import { PersonalInfoStep } from '../../components/form/steps/PersonalInfoStep';
+import { useFormStore } from '../../store/formStore';
+import { useTranslation } from '../../lib/i18n';
 
-export default function HomePage() {
+export default function FormPage() {
   const { currentStep, setStep } = useFormStore();
   const { t } = useTranslation();
 
@@ -54,9 +54,7 @@ export default function HomePage() {
             onNext={handleNext}
             onBack={handleBack}
           >
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
-              Job Interest Step - Coming Soon
-            </div>
+            <div>Job Interest Step - Coming Soon</div>
           </StepContainer>
         );
       case 3:
@@ -67,9 +65,7 @@ export default function HomePage() {
             onNext={handleNext}
             onBack={handleBack}
           >
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
-              Notifications Step - Coming Soon
-            </div>
+            <div>Notifications Step - Coming Soon</div>
           </StepContainer>
         );
       case 4:
@@ -80,9 +76,7 @@ export default function HomePage() {
             onBack={handleBack}
             isLastStep
           >
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
-              Confirmation Step - Coming Soon
-            </div>
+            <div>Confirmation Step - Coming Soon</div>
           </StepContainer>
         );
       default:
@@ -91,23 +85,13 @@ export default function HomePage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem',
-      }}
+    <FormWizard
+      currentStep={currentStep}
+      totalSteps={4}
+      stepTitles={stepTitles}
+      onStepClick={handleStepClick}
     >
-      <FormWizard
-        currentStep={currentStep}
-        totalSteps={4}
-        stepTitles={stepTitles}
-        onStepClick={handleStepClick}
-      >
-        {renderCurrentStep()}
-      </FormWizard>
-    </div>
+      {renderCurrentStep()}
+    </FormWizard>
   );
 }

@@ -11,12 +11,13 @@
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
     "@tanstack/react-query": "^5.83.0",
+    "@tanstack/react-query-devtools": "^5.83.0",
     "axios": "^1.11.0",
-    "framer-motion": "^12.23.6",
+    "framer-motion": "^12.23.9",
     "next": "15.4.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-hook-form": "^7.60.0",
+    "react-hook-form": "^7.61.1",
     "zod": "^4.0.5",
     "zustand": "^5.0.6"
   },

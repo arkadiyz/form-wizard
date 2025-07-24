@@ -1,0 +1,47 @@
+.formGrid {
+  display: grid;
+  width: 100%;
+}
+
+.columns-1 {
+  grid-template-columns: 1fr;
+}
+
+.columns-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.columns-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.gap-sm {
+  gap: 0.75rem;
+}
+
+.gap-md {
+  gap: 1.5rem;
+}
+
+.gap-lg {
+  gap: 2rem;
+}
+
+/* Mobile - Always single column */
+@media (max-width: 480px) {
+  .columns-2,
+  .columns-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .gap-lg {
+    gap: 1rem;
+  }
+}
+
+/* Tablet - Max 2 columns */
+@media (min-width: 481px) and (max-width: 768px) {
+  .columns-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

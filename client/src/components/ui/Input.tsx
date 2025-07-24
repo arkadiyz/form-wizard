@@ -4,14 +4,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import styles from './Input.module.css';
 
 export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
-  label: string;
+  label?: string;
   error?: string;
   hint?: string;
   isRequired?: boolean;
+  dir?: 'ltr' | 'rtl';
+  clearable?: boolean;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onValueChange?: (value: string) => void;
   onValidationTrigger?: () => void;
-  clearable?: boolean;
-  dir?: 'ltr' | 'rtl';
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -24,6 +26,7 @@ export const Input: React.FC<InputProps> = ({
   clearable = true,
   dir = 'ltr',
   className,
+  onChange, // הוספתי את זה
   ...props
 }) => {
   const [value, setValue] = useState(props.value || '');
@@ -42,6 +45,9 @@ export const Input: React.FC<InputProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
+
+    // קורא גם ל-onChange וגם ל-onValueChange
+    onChange?.(e);
     onValueChange?.(newValue);
 
     if (hasInteracted) {
@@ -67,7 +73,16 @@ export const Input: React.FC<InputProps> = ({
   const handleClear = () => {
     setValue('');
     onValueChange?.('');
+
+    // יוצר synthetic event לטופס
+    const clearEvent = {
+      target: { value: '' },
+      currentTarget: { value: '' },
+    } as React.ChangeEvent<HTMLInputElement>;
+
+    onChange?.(clearEvent);
     inputRef.current?.focus();
+
     if (hasInteracted) {
       onValidationTrigger?.();
     }
@@ -75,10 +90,12 @@ export const Input: React.FC<InputProps> = ({
 
   return (
     <div className={`${styles.inputWrapper} ${className || ''}`} dir={dir}>
-      <label className={styles.label}>
-        {label}
-        {isRequired && <span className={styles.required}>*</span>}
-      </label>
+      {label && (
+        <label className={styles.label}>
+          {label}
+          {isRequired && <span className={styles.required}>*</span>}
+        </label>
+      )}
 
       <div className={styles.inputContainer}>
         <input

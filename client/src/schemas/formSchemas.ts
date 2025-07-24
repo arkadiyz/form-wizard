@@ -5,12 +5,12 @@ export const PersonalInfoSchema = z.object({
     .string()
     .min(1, 'We need to know what to call you ;)')
     .min(2, 'Your name cannot be so short!')
-    .regex(/^[A-Za-z]+$/, 'We suggest using English for internal purposes'),
+    .regex(/^[A-Za-z\s]+$/, 'We suggest using English for internal purposes'),
   lastName: z
     .string()
     .min(1, 'We need to know what to call you ;)')
     .min(2, 'Your name cannot be so short!')
-    .regex(/^[A-Za-z]+$/, 'We suggest using English for internal purposes'),
+    .regex(/^[A-Za-z\s]+$/, 'We suggest using English for internal purposes'),
   phone: z
     .string()
     .min(1, 'We need a way to contact you ;)')
