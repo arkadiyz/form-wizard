@@ -6,3 +6,6 @@ export type { ButtonProps } from './Button';
 
 export { Dropdown } from './Dropdown';
 export type { DropdownProps, DropdownOption } from './Dropdown';
+
+export { Toggle } from './Toggle';
+export type { ToggleProps } from './Toggle';

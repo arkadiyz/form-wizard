@@ -1,0 +1,150 @@
+.toggleWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.toggleContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.toggle {
+  position: relative;
+  width: 3rem;
+  height: 1.5rem;
+  background-color: #d1d5db;
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.toggle:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.toggle.checked {
+  background-color: #3b82f6;
+}
+
+.toggle.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle.toggling {
+  opacity: 0.7;
+}
+
+.thumb {
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.thumbChecked {
+  transform: translateX(1.5rem);
+}
+
+.label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  user-select: none;
+  flex: 1;
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-left: 3.75rem; /* Align with label */
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .toggle {
+    width: 3.5rem;
+    height: 2rem;
+  }
+
+  .thumb {
+    width: 1.5rem;
+    height: 1.5rem;
+    top: 0.25rem;
+    left: 0.25rem;
+  }
+
+  .thumbChecked {
+    transform: translateX(1.5rem);
+  }
+
+  .toggleContainer {
+    gap: 1rem;
+  }
+
+  .label {
+    font-size: 1.125rem;
+  }
+
+  .hint {
+    margin-left: 4.5rem;
+  }
+}
+
+/* RTL Support */
+[dir='rtl'] .thumb {
+  left: auto;
+  right: 0.125rem;
+}
+
+[dir='rtl'] .thumbChecked {
+  transform: translateX(-1.5rem);
+}
+
+[dir='rtl'] .hint {
+  margin-left: 0;
+  margin-right: 3.75rem;
+}
+
+@media (max-width: 480px) {
+  [dir='rtl'] .thumb {
+    right: 0.25rem;
+  }
+
+  [dir='rtl'] .thumbChecked {
+    transform: translateX(-1.5rem);
+  }
+
+  [dir='rtl'] .hint {
+    margin-right: 4.5rem;
+  }
+}
+
+/* Tablet */
+@media (min-width: 481px) and (max-width: 768px) {
+  .toggle {
+    width: 3.25rem;
+    height: 1.75rem;
+  }
+
+  .thumb {
+    width: 1.375rem;
+    height: 1.375rem;
+  }
+
+  .thumbChecked {
+    transform: translateX(1.5rem);
+  }
+}
