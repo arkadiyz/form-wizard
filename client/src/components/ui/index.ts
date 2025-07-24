@@ -12,3 +12,6 @@ export type { ToggleProps } from './Toggle';
 
 export { Autocomplete } from './Autocomplete';
 export type { AutocompleteProps, AutocompleteOption } from './Autocomplete';
+
+export { Chips } from './Chips';
+export type { ChipsProps, ChipOption } from './Chips';
