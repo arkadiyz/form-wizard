@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { PersonalInfoSchema, type PersonalInfo } from '../../../schemas/formSchemas';
 import { useFormStore } from '../../../store/formStore';
 import { useTranslation } from '../../../lib/i18n';
+import { useDelayedValidation, checkEmailUniqueness } from '../../../hooks/useFormValidation';
 import { Input } from '../../ui';
 import { FormGrid } from '../FormGrid';
 import { StepHeader } from '../StepHeader';
@@ -26,24 +27,50 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({ locale = 'en
     formState: { errors },
     setValue,
     clearErrors,
+    watch,
   } = useForm<PersonalInfo>({
     resolver: zodResolver(PersonalInfoSchema),
     defaultValues: formData.personalInfo,
     mode: 'onBlur',
   });
 
+  // Watch email field for delayed validation
+  const emailValue = watch('email');
+
+  // Email uniqueness validation with debouncing
+  const {
+    isValidating: isEmailValidating,
+    error: emailUniquenessError,
+    isValid: isEmailUnique,
+  } = useDelayedValidation({
+    value: emailValue || '',
+    validator: checkEmailUniqueness,
+    delay: 500,
+  });
+
   const onSubmit = (data: PersonalInfo) => {
     updatePersonalInfo(data);
   };
 
+  // Enhanced phone input handler for Israeli phone numbers
   const handlePhoneInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+
     // Only allow numbers and dash
     const cleaned = value.replace(/[^0-9-]/g, '');
+
     // Limit to 10 digits (excluding dash)
     const digitsOnly = cleaned.replace(/-/g, '');
+
+    // Auto-format with dash after 3 digits (Israeli format)
+    let formatted = cleaned;
+    if (digitsOnly.length >= 3 && !cleaned.includes('-')) {
+      formatted = digitsOnly.slice(0, 3) + '-' + digitsOnly.slice(3, 10);
+    }
+
+    // Max 10 digits total
     if (digitsOnly.length <= 10) {
-      setValue('phone', cleaned);
+      setValue('phone', formatted);
       clearErrors('phone');
     }
   };
@@ -52,6 +79,9 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({ locale = 'en
   const handleBlur = (field: keyof PersonalInfo, value: string) => {
     updatePersonalInfo({ [field]: value });
   };
+
+  // Determine final email error (form validation or uniqueness)
+  const finalEmailError = errors.email?.message || emailUniquenessError || undefined;
 
   return (
     <motion.div
@@ -97,20 +127,25 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({ locale = 'en
             isRequired
             type="tel"
             inputMode="numeric"
+            pattern="[0-9-]*"
+            maxLength={11}
             onChange={handlePhoneInput}
             onBlur={(e) => handleBlur('phone', e.target.value)}
             dir={locale === 'he' ? 'rtl' : 'ltr'}
+            hint="Israeli mobile format: 050-1234567"
           />
 
           <Input
             {...register('email')}
             label={t('fields.email')}
             placeholder="john@example.com"
-            error={errors.email?.message}
+            error={finalEmailError}
             isRequired
+            isLoading={isEmailValidating}
             type="email"
             dir={locale === 'he' ? 'rtl' : 'ltr'}
             onBlur={(e) => handleBlur('email', e.target.value)}
+            hint={isEmailUnique === true ? '✓ Email is available' : undefined}
           />
         </FormGrid>
       </form>

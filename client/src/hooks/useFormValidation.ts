@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { z } from 'zod';
 
 interface ValidationResult {
@@ -115,3 +115,138 @@ export function useFormValidation<T>({
     touchedFields,
   };
 }
+
+// Hook for delayed validation with debouncing
+interface UseDelayedValidationProps {
+  value: string;
+  validator: (value: string) => Promise<boolean> | boolean;
+  delay?: number;
+  triggerValidation?: boolean;
+}
+
+interface DelayedValidationResult {
+  isValidating: boolean;
+  error: string | null;
+  isValid: boolean | null;
+}
+
+export function useDelayedValidation({
+  value,
+  validator,
+  delay = 300,
+  triggerValidation = false,
+}: UseDelayedValidationProps): DelayedValidationResult {
+  const [isValidating, setIsValidating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isValid, setIsValid] = useState<boolean | null>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    // Only validate if user has interacted or triggerValidation is true
+    if (!hasInteracted && !triggerValidation) {
+      return;
+    }
+
+    // Clear previous timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Reset states
+    setError(null);
+    setIsValid(null);
+
+    // Don't validate empty values
+    if (!value.trim()) {
+      setIsValidating(false);
+      return;
+    }
+
+    // Start delayed validation
+    timeoutRef.current = setTimeout(async () => {
+      setIsValidating(true);
+
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+
+      try {
+        const result = await validator(value);
+
+        // Check if request was aborted
+        if (abortControllerRef.current.signal.aborted) {
+          return;
+        }
+
+        setIsValid(result);
+        if (!result) {
+          setError('Validation failed');
+        }
+      } catch (err) {
+        // Check if request was aborted
+        if (abortControllerRef.current.signal.aborted) {
+          return;
+        }
+
+        setIsValid(false);
+        setError(err instanceof Error ? err.message : 'Validation error');
+      } finally {
+        setIsValidating(false);
+      }
+    }, delay);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [value, validator, delay, hasInteracted, triggerValidation]);
+
+  // Mark as interacted when value changes and it's not the first render
+  useEffect(() => {
+    if (value && !hasInteracted) {
+      setHasInteracted(true);
+    }
+  }, [value, hasInteracted]);
+
+  return {
+    isValidating,
+    error,
+    isValid,
+  };
+}
+
+// Mock API function for email uniqueness check (client-side simulation)
+export const checkEmailUniqueness = async (email: string): Promise<boolean> => {
+  // Simulate API delay
+  await new Promise((resolve) => setTimeout(resolve, 800));
+
+  // Mock some existing emails for testing
+  const existingEmails = [
+    'test@example.com',
+    'admin@test.com',
+    'user@demo.com',
+    'john@company.com',
+  ];
+
+  // Check if email exists (case insensitive)
+  const emailExists = existingEmails.some(
+    (existing) => existing.toLowerCase() === email.toLowerCase(),
+  );
+
+  if (emailExists) {
+    throw new Error('This email is already registered!');
+  }
+
+  return true; // Email is unique
+};

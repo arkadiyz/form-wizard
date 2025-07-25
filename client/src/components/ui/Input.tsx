@@ -10,6 +10,7 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
   isRequired?: boolean;
   dir?: 'ltr' | 'rtl';
   clearable?: boolean;
+  isLoading?: boolean;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onValueChange?: (value: string) => void;
   onValidationTrigger?: () => void;
@@ -21,6 +22,7 @@ export const Input: React.FC<InputProps> = ({
   error,
   hint,
   isRequired = false,
+  isLoading = false,
   onValueChange,
   onValidationTrigger,
   clearable = true,
@@ -105,12 +107,18 @@ export const Input: React.FC<InputProps> = ({
           onChange={handleChange}
           onBlur={handleBlur}
           onFocus={handleFocus}
-          className={`${styles.input} ${showError ? styles.error : ''}`}
+          className={`${styles.input} ${showError ? styles.error : ''} ${isLoading ? styles.loading : ''}`}
           aria-invalid={showError ? 'true' : undefined}
           aria-describedby={error ? `${props.id}-error` : undefined}
         />
 
-        {showClear && (
+        {isLoading && (
+          <div className={styles.loadingSpinner} aria-label="Validating">
+            <div className={styles.spinner}></div>
+          </div>
+        )}
+
+        {showClear && !isLoading && (
           <button
             type="button"
             className={styles.clearButton}

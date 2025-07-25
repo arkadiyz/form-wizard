@@ -50,6 +50,10 @@
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
+.input.loading {
+  padding-right: 3rem;
+}
+
 .clearButton {
   position: absolute;
   right: 0.75rem;
@@ -73,6 +77,34 @@
   color: #374151;
 }
 
+.loadingSpinner {
+  position: absolute;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 .hint {
   font-size: 0.75rem;
   color: #6b7280;
@@ -90,8 +122,18 @@
   left: 0.75rem;
 }
 
+[dir='rtl'] .loadingSpinner {
+  right: auto;
+  left: 0.75rem;
+}
+
 [dir='rtl'] .input {
   text-align: right;
+}
+
+[dir='rtl'] .input.loading {
+  padding-left: 3rem;
+  padding-right: 1rem;
 }
 
 /* Mobile Responsive */
