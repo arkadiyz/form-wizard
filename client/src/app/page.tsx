@@ -1,16 +1,18 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { FormWizard } from '../components/form/FormWizard';
 import { PersonalInfoStep } from '../components/form/steps/PersonalInfoStep';
 import { JobInterestStep } from '../components/form/steps/JobInterestStep';
 import { NotificationsStep } from '../components/form/steps/NotificationsStep';
+import { ConfirmationStep } from '../components/form/steps/ConfirmationStep';
 import { useFormStore } from '../store/formStore';
 import { useTranslation } from '../lib/i18n';
 
 export default function HomePage() {
   const { currentStep, setStep } = useFormStore();
   const { t } = useTranslation();
+  const confirmationRef = useRef<{ handleSubmit: () => void }>(null);
 
   const stepTitles = [
     t('steps.personalInfo'),
@@ -20,7 +22,10 @@ export default function HomePage() {
   ];
 
   const handleNext = () => {
-    if (currentStep < 4) {
+    if (currentStep === 4) {
+      // If we're on confirmation step, submit the form
+      confirmationRef.current?.handleSubmit();
+    } else if (currentStep < 4) {
       setStep(currentStep + 1);
     }
   };
@@ -44,11 +49,7 @@ export default function HomePage() {
       case 3:
         return <NotificationsStep />;
       case 4:
-        return (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
-            Confirmation Step - Coming Soon
-          </div>
-        );
+        return <ConfirmationStep ref={confirmationRef} />;
       default:
         return null;
     }

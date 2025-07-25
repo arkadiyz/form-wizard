@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFormStore } from '../../../store/formStore';
 import { Toggle, Checkbox } from '../../ui';
+import { StepHeader } from '../StepHeader';
 import styles from './NotificationsStep.module.css';
 
 interface NotificationsStepProps {
@@ -119,12 +120,10 @@ export const NotificationsStep: React.FC<NotificationsStepProps> = () => {
       transition={{ duration: 0.3 }}
       className={styles.container}
     >
-      <div className={styles.header}>
-        <h3 className={styles.title}>Notification Preferences</h3>
-        <p className={styles.subtitle}>
-          Choose how you&apos;d like to receive updates about your application
-        </p>
-      </div>
+      <StepHeader
+        title="Notification Preferences"
+        subtitle="Choose how you'd like to receive updates about your application"
+      />
 
       <div className={styles.notificationsList}>
         {/* Email Toggle */}

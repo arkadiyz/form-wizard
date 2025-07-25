@@ -9,6 +9,7 @@ import { useFormStore } from '../../../store/formStore';
 import { useTranslation } from '../../../lib/i18n';
 import { Input } from '../../ui';
 import { FormGrid } from '../FormGrid';
+import { StepHeader } from '../StepHeader';
 import styles from './PersonalInfoStep.module.css';
 
 interface PersonalInfoStepProps {
@@ -59,6 +60,11 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({ locale = 'en
       transition={{ duration: 0.3 }}
       className={styles.stepContainer}
     >
+      <StepHeader
+        title="Personal Information"
+        subtitle="Please provide your basic personal information to get started."
+      />
+
       <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
         <FormGrid columns={2} gap="lg">
           <Input

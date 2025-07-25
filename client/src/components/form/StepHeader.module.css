@@ -1,0 +1,47 @@
+/* StepHeader Styles */
+.header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .header {
+    margin-bottom: 1.5rem;
+    text-align: right;
+  }
+
+  .title {
+    font-size: 1.25rem;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+  }
+}
+
+/* RTL support */
+[dir='rtl'] .header {
+  text-align: right;
+}
+
+[dir='rtl'] .title,
+[dir='rtl'] .subtitle {
+  text-align: right;
+}

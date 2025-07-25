@@ -8,6 +8,7 @@ import { JobInterestSchema, type JobInterest } from '../../../schemas/formSchema
 import { useFormStore } from '../../../store/formStore';
 import { Autocomplete, Dropdown, Chips } from '../../ui';
 import { FormGrid } from '../FormGrid';
+import { StepHeader } from '../StepHeader';
 import styles from './JobInterestStep.module.css';
 
 interface JobInterestStepProps {
@@ -250,6 +251,11 @@ export const JobInterestStep: React.FC<JobInterestStepProps> = ({ locale = 'en' 
       transition={{ duration: 0.3 }}
       className={styles.stepContainer}
     >
+      <StepHeader
+        title="Job Interest & Skills"
+        subtitle="Tell us about your job preferences and showcase your skills."
+      />
+
       {/* Skill Limit Notification */}
       {showLimitNotification && (
         <motion.div
