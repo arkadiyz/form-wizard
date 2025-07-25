@@ -10,6 +10,10 @@ interface FormWizardProps {
   totalSteps: number;
   stepTitles: string[];
   onStepClick?: (step: number) => void;
+  onNext?: () => void;
+  onBack?: () => void;
+  isNextDisabled?: boolean;
+  isLastStep?: boolean;
   dir?: 'ltr' | 'rtl';
 }
 
@@ -19,6 +23,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
   totalSteps,
   stepTitles,
   onStepClick,
+  onNext,
+  onBack,
+  isNextDisabled = false,
+  isLastStep = false,
   dir = 'ltr',
 }) => {
   return (
@@ -75,6 +83,29 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Fixed Footer with buttons */}
+      {(onNext || onBack) && (
+        <footer className={styles.wizardFooter}>
+          <div className={styles.buttonGroup}>
+            {onBack && (
+              <button onClick={onBack} className={styles.backButton}>
+                Back
+              </button>
+            )}
+
+            {onNext && (
+              <button
+                onClick={onNext}
+                disabled={isNextDisabled}
+                className={`${styles.nextButton} ${isNextDisabled ? styles.disabled : ''}`}
+              >
+                {isLastStep ? 'Submit' : 'Next'}
+              </button>
+            )}
+          </div>
+        </footer>
+      )}
     </div>
   );
 };

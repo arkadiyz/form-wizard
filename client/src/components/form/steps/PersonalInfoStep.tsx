@@ -12,18 +12,17 @@ import { FormGrid } from '../FormGrid';
 import styles from './PersonalInfoStep.module.css';
 
 interface PersonalInfoStepProps {
-  onNext: () => void;
   locale?: string;
 }
 
-export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({ onNext, locale = 'en' }) => {
+export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({ locale = 'en' }) => {
   const { formData, updatePersonalInfo } = useFormStore();
   const { t } = useTranslation(locale);
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid },
+    formState: { errors },
     setValue,
     clearErrors,
   } = useForm<PersonalInfo>({
@@ -34,7 +33,6 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({ onNext, loca
 
   const onSubmit = (data: PersonalInfo) => {
     updatePersonalInfo(data);
-    onNext();
   };
 
   const handlePhoneInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,18 +107,6 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({ onNext, loca
             onBlur={(e) => handleBlur('email', e.target.value)}
           />
         </FormGrid>
-
-        <div className={styles.actions}>
-          <motion.button
-            type="submit"
-            disabled={!isValid}
-            className={`${styles.nextButton} ${!isValid ? styles.disabled : ''}`}
-            whileHover={{ scale: isValid ? 1.02 : 1 }}
-            whileTap={{ scale: isValid ? 0.98 : 1 }}
-          >
-            {t('buttons.next')}
-          </motion.button>
-        </div>
       </form>
     </motion.div>
   );

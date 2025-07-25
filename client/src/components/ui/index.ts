@@ -15,3 +15,6 @@ export type { AutocompleteProps, AutocompleteOption } from './Autocomplete';
 
 export { Chips } from './Chips';
 export type { ChipsProps, ChipOption } from './Chips';
+
+export { Checkbox } from './Checkbox';
+export type { CheckboxProps } from './Checkbox';

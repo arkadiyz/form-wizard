@@ -2,12 +2,18 @@
   width: 100%;
   max-width: 700px;
   margin: 0 auto;
+  height: 100%; /* תופס את כל הגובה */
+  display: flex;
+  flex-direction: column;
+  position: relative; /* לnotification */
 }
 
 .form {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  flex: 1; /* תופס את כל השטח הפנוי */
+  overflow-y: auto; /* סקרול אם צריך */
 }
 
 .skillsSection {
@@ -86,6 +92,62 @@
   box-shadow: none;
 }
 
+/* Notification styles */
+.notification {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: #ef4444;
+  color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  max-width: 400px;
+  width: 90%;
+}
+
+.notificationContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  gap: 1rem;
+}
+
+.notificationClose {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.notificationClose:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Mobile notification adjustments */
+@media (max-width: 480px) {
+  .notification {
+    top: 0.5rem;
+    width: 95%;
+  }
+
+  .notificationContent {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+}
+
 /* Mobile Responsive */
 @media (max-width: 480px) {
   .stepContainer {
@@ -134,4 +196,17 @@
 
 [dir='rtl'] .skillsSection h3 {
   text-align: right;
+}
+
+/* RTL notification */
+[dir='rtl'] .notificationContent {
+  flex-direction: row-reverse;
+}
+
+.skillsHint {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+  font-weight: 500;
 }

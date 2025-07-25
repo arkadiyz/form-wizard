@@ -1,11 +1,14 @@
 .stepContainer {
   display: flex;
   flex-direction: column;
-  min-height: 400px;
+  min-height: 100%;
+  height: auto;
+  max-width: 100%;
 }
 
 .stepHeader {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  flex-shrink: 0; /* לא מתכווץ */
 }
 
 .stepTitle {
@@ -22,14 +25,16 @@
 }
 
 .stepBody {
-  flex: 1;
-  margin-bottom: 2rem;
+  flex: 1; /* תופס את כל השטח הפנוי */
+  overflow: visible; /* לא לחתוך תוכן */
+  margin-bottom: 1rem;
 }
 
 .stepFooter {
   margin-top: auto;
-  padding-top: 1.5rem;
+  padding-top: 1rem;
   border-top: 1px solid #e5e7eb;
+  flex-shrink: 0; /* לא מתכווץ */
 }
 
 .buttonGroup {

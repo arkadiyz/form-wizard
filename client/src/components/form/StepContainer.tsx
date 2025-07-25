@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Button } from '../ui';
 import styles from './StepContainer.module.css';
 
 interface StepContainerProps {
@@ -37,27 +36,6 @@ export const StepContainer: React.FC<StepContainerProps> = ({
       </header>
 
       <div className={styles.stepBody}>{children}</div>
-
-      <footer className={styles.stepFooter}>
-        <div className={styles.buttonGroup}>
-          {onBack && (
-            <Button variant="outline" onClick={onBack} className={styles.backButton}>
-              {backLabel}
-            </Button>
-          )}
-
-          {onNext && (
-            <Button
-              variant={isLastStep ? 'primary' : 'primary'}
-              onClick={onNext}
-              disabled={isNextDisabled}
-              className={styles.nextButton}
-            >
-              {isLastStep ? 'Submit' : nextLabel}
-            </Button>
-          )}
-        </div>
-      </footer>
     </div>
   );
 };

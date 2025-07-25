@@ -2,12 +2,16 @@
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
+  height: 100%; /* תופס את כל הגובה */
+  display: flex;
+  flex-direction: column;
 }
 
 .form {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  flex: 1; /* תופס את כל השטח הפנוי */
 }
 
 .actions {

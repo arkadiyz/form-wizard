@@ -1,19 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
 import { JobInterestSchema, type JobInterest } from '../../../schemas/formSchemas';
 import { useFormStore } from '../../../store/formStore';
-import { useTranslation } from '../../../lib/i18n';
 import { Autocomplete, Dropdown, Chips } from '../../ui';
 import { FormGrid } from '../FormGrid';
 import styles from './JobInterestStep.module.css';
 
 interface JobInterestStepProps {
-  onNext: () => void;
-  onBack: () => void;
   locale?: string;
 }
 
@@ -61,32 +58,60 @@ const mockLocations = [
   { id: '5', label: 'Remote', value: 'remote' },
 ];
 
-const mockSkills = [
-  { id: '1', label: 'React', value: 'react', type: 'mandatory' },
-  { id: '2', label: 'TypeScript', value: 'typescript', type: 'advantage' },
-  { id: '3', label: 'Node.js', value: 'nodejs', type: 'mandatory' },
-  { id: '4', label: 'Python', value: 'python', type: 'advantage' },
-  { id: '5', label: 'JavaScript', value: 'javascript', type: 'mandatory' },
-  { id: '6', label: 'CSS', value: 'css', type: 'advantage' },
-  { id: '7', label: 'HTML', value: 'html', type: 'mandatory' },
-  { id: '8', label: 'Git', value: 'git', type: 'advantage' },
+// Extended skills pool for replacement system
+const allMockSkills = [
+  // Mandatory skills pool
+  { id: '1', label: 'React', value: 'react' },
+  { id: '2', label: 'JavaScript', value: 'javascript' },
+  { id: '3', label: 'Node.js', value: 'nodejs' },
+  { id: '4', label: 'HTML', value: 'html' },
+  { id: '5', label: 'CSS', value: 'css' },
+  { id: '6', label: 'Python', value: 'python' },
+  { id: '7', label: 'Java', value: 'java' },
+  { id: '8', label: 'SQL', value: 'sql' },
+  { id: '9', label: 'PHP', value: 'php' },
+  { id: '10', label: 'C#', value: 'csharp' },
+  { id: '11', label: 'Angular', value: 'angular' },
+  { id: '12', label: 'Vue.js', value: 'vue' },
+  // Advantage skills pool
+  { id: '13', label: 'TypeScript', value: 'typescript' },
+  { id: '14', label: 'Git', value: 'git' },
+  { id: '15', label: 'Docker', value: 'docker' },
+  { id: '16', label: 'AWS', value: 'aws' },
+  { id: '17', label: 'MongoDB', value: 'mongodb' },
+  { id: '18', label: 'GraphQL', value: 'graphql' },
+  { id: '19', label: 'Redux', value: 'redux' },
+  { id: '20', label: 'Sass', value: 'sass' },
+  { id: '21', label: 'Webpack', value: 'webpack' },
+  { id: '22', label: 'Jest', value: 'jest' },
+  { id: '23', label: 'Figma', value: 'figma' },
+  { id: '24', label: 'Adobe XD', value: 'adobe-xd' },
 ];
 
-export const JobInterestStep: React.FC<JobInterestStepProps> = ({
-  onNext,
-  onBack,
-  locale = 'en',
-}) => {
+export const JobInterestStep: React.FC<JobInterestStepProps> = ({ locale = 'en' }) => {
   const { formData, updateJobInterest } = useFormStore();
-  const { t } = useTranslation(locale);
 
+  // Category/Role state
   const [selectedCategory, setSelectedCategory] = useState(formData.jobInterest.categoryId);
 
-  const {
-    handleSubmit,
-    formState: { isValid },
-    setValue,
-  } = useForm<JobInterest>({
+  // Skills state management
+  const [mandatorySkills, setMandatorySkills] = useState<string[]>([]);
+  const [advantageSkills, setAdvantageSkills] = useState<string[]>([]);
+  const [removedSkills, setRemovedSkills] = useState<string[]>([]);
+  const [showLimitNotification, setShowLimitNotification] = useState(false);
+
+  // Available skills for display (8 chips initially: 4 + 4)
+  const [availableMandatory, setAvailableMandatory] = useState<typeof allMockSkills>([]);
+  const [availableAdvantage, setAvailableAdvantage] = useState<typeof allMockSkills>([]);
+
+  // Initialize 8 recommended chips (4 mandatory + 4 advantage)
+  useEffect(() => {
+    const shuffled = [...allMockSkills].sort(() => 0.5 - Math.random());
+    setAvailableMandatory(shuffled.slice(0, 4));
+    setAvailableAdvantage(shuffled.slice(4, 8));
+  }, []);
+
+  const { handleSubmit, setValue } = useForm<JobInterest>({
     resolver: zodResolver(JobInterestSchema),
     defaultValues: formData.jobInterest,
     mode: 'onChange',
@@ -94,7 +119,7 @@ export const JobInterestStep: React.FC<JobInterestStepProps> = ({
 
   const onSubmit = (data: JobInterest) => {
     updateJobInterest(data);
-    onNext();
+    // Remove onNext call since FormWizard handles navigation
   };
 
   const handleCategoryChange = (categoryValue: string | string[]) => {
@@ -113,8 +138,105 @@ export const JobInterestStep: React.FC<JobInterestStepProps> = ({
     setValue('locationId', locationId, { shouldValidate: true });
   };
 
-  const handleSkillsChange = (skills: string[]) => {
-    setValue('skills', skills, { shouldValidate: true });
+  // Calculate total skills
+  const totalSkills = mandatorySkills.length + advantageSkills.length;
+  const maxSkills = 10;
+
+  // Handle mandatory skills with mutual exclusivity and limits
+  const handleMandatorySkillsChange = (selectedValues: string[]) => {
+    // Check if trying to exceed limit
+    const newTotal = selectedValues.length + advantageSkills.length;
+    if (newTotal > maxSkills) {
+      showSkillLimitNotification();
+      return;
+    }
+
+    // Remove from advantage if exists (mutual exclusivity)
+    const cleanedAdvantageSkills = advantageSkills.filter(
+      (skill) => !selectedValues.includes(skill),
+    );
+
+    // Update states
+    setMandatorySkills(selectedValues);
+    setAdvantageSkills(cleanedAdvantageSkills);
+
+    // Update form with combined skills
+    const allSkills = [...selectedValues, ...cleanedAdvantageSkills];
+    setValue('skills', allSkills, { shouldValidate: true });
+
+    // Handle chip replacement
+    replaceRemovedChips(selectedValues, availableMandatory, setAvailableMandatory);
+  };
+
+  // Handle advantage skills with mutual exclusivity and limits
+  const handleAdvantageSkillsChange = (selectedValues: string[]) => {
+    // Check if trying to exceed limit
+    const newTotal = mandatorySkills.length + selectedValues.length;
+    if (newTotal > maxSkills) {
+      showSkillLimitNotification();
+      return;
+    }
+
+    // Remove from mandatory if exists (mutual exclusivity)
+    const cleanedMandatorySkills = mandatorySkills.filter(
+      (skill) => !selectedValues.includes(skill),
+    );
+
+    // Update states
+    setAdvantageSkills(selectedValues);
+    setMandatorySkills(cleanedMandatorySkills);
+
+    // Update form with combined skills
+    const allSkills = [...cleanedMandatorySkills, ...selectedValues];
+    setValue('skills', allSkills, { shouldValidate: true });
+
+    // Handle chip replacement
+    replaceRemovedChips(selectedValues, availableAdvantage, setAvailableAdvantage);
+  };
+
+  // Replace removed chips with new ones
+  const replaceRemovedChips = (
+    currentSelection: string[],
+    currentAvailable: typeof allMockSkills,
+    setAvailable: React.Dispatch<React.SetStateAction<typeof allMockSkills>>,
+  ) => {
+    // Find removed chips (chips that were available but not selected anymore)
+    const previouslyAvailable = currentAvailable.map((chip) => chip.value);
+    const removedChips = previouslyAvailable.filter(
+      (chip) =>
+        !currentSelection.includes(chip) &&
+        currentAvailable.some((available) => available.value === chip),
+    );
+
+    if (removedChips.length > 0) {
+      // Add to removed list so they don't appear again
+      setRemovedSkills((prev) => [...prev, ...removedChips]);
+
+      // Find replacement chips
+      const usedSkills = [...mandatorySkills, ...advantageSkills, ...currentSelection];
+      const replacementChips = allMockSkills
+        .filter(
+          (skill) =>
+            !usedSkills.includes(skill.value) &&
+            !removedSkills.includes(skill.value) &&
+            !removedChips.includes(skill.value),
+        )
+        .slice(0, removedChips.length);
+
+      // Update available chips
+      setAvailable((prev) => [
+        ...prev.filter((chip) => currentSelection.includes(chip.value)),
+        ...replacementChips,
+      ]);
+    }
+  };
+
+  // Show notification for skill limit with auto-close
+  const showSkillLimitNotification = () => {
+    setShowLimitNotification(true);
+    setTimeout(() => {
+      setShowLimitNotification(false);
+    }, 5000);
   };
 
   const availableRoles = selectedCategory
@@ -128,6 +250,26 @@ export const JobInterestStep: React.FC<JobInterestStepProps> = ({
       transition={{ duration: 0.3 }}
       className={styles.stepContainer}
     >
+      {/* Skill Limit Notification */}
+      {showLimitNotification && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className={styles.notification}
+        >
+          <div className={styles.notificationContent}>
+            <span>You can choose up to 10 mandatory and advantage skills total</span>
+            <button
+              onClick={() => setShowLimitNotification(false)}
+              className={styles.notificationClose}
+            >
+              ×
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
         <FormGrid columns={1} gap="lg">
           {/* Category Selection */}
@@ -169,52 +311,35 @@ export const JobInterestStep: React.FC<JobInterestStepProps> = ({
           {/* Skills Selection */}
           <div className={styles.skillsSection}>
             <h3>Skills & Preferences</h3>
+            <p className={styles.skillsHint}>
+              Add up to 10 skills ({totalSkills}/{maxSkills})
+            </p>
 
             <div className={styles.skillsGrid}>
               <div className={styles.skillColumn}>
                 <Chips
                   label="Mandatory Skills"
-                  options={mockSkills.filter((skill) => skill.type === 'mandatory')}
-                  onSelectionChange={handleSkillsChange}
-                  maxSelections={5}
+                  options={availableMandatory}
+                  selectedValues={mandatorySkills}
+                  onSelectionChange={handleMandatorySkillsChange}
                   hint="Select your core skills"
+                  dir={locale === 'he' ? 'rtl' : 'ltr'}
                 />
               </div>
 
               <div className={styles.skillColumn}>
                 <Chips
                   label="Advantage Skills"
-                  options={mockSkills.filter((skill) => skill.type === 'advantage')}
-                  onSelectionChange={handleSkillsChange}
-                  maxSelections={5}
+                  options={availableAdvantage}
+                  selectedValues={advantageSkills}
+                  onSelectionChange={handleAdvantageSkillsChange}
                   hint="Nice to have skills"
+                  dir={locale === 'he' ? 'rtl' : 'ltr'}
                 />
               </div>
             </div>
           </div>
         </FormGrid>
-
-        <div className={styles.actions}>
-          <motion.button
-            type="button"
-            onClick={onBack}
-            className={styles.backButton}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {t('buttons.back')}
-          </motion.button>
-
-          <motion.button
-            type="submit"
-            disabled={!isValid}
-            className={`${styles.nextButton} ${!isValid ? styles.disabled : ''}`}
-            whileHover={{ scale: isValid ? 1.02 : 1 }}
-            whileTap={{ scale: isValid ? 0.98 : 1 }}
-          >
-            {t('buttons.next')}
-          </motion.button>
-        </div>
       </form>
     </motion.div>
   );

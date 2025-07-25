@@ -14,17 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" dir="ltr">
       <body className={inter.className}>
-        <Providers>
-          <div className="app-container">
-            <header className="app-header">
-              <h1>Job Application</h1>
-            </header>
-            <main className="app-main">{children}</main>
-            <footer className="app-footer">
-              <p>&copy; 2025 Company Name</p>
-            </footer>
-          </div>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { FormWizard } from '../components/form/FormWizard';
-import { StepContainer } from '../components/form/StepContainer';
 import { PersonalInfoStep } from '../components/form/steps/PersonalInfoStep';
 import { JobInterestStep } from '../components/form/steps/JobInterestStep';
+import { NotificationsStep } from '../components/form/steps/NotificationsStep';
 import { useFormStore } from '../store/formStore';
 import { useTranslation } from '../lib/i18n';
 
@@ -38,51 +38,16 @@ export default function HomePage() {
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 1:
-        return (
-          <StepContainer
-            title={t('steps.personalInfo')}
-            description="Please provide your basic information"
-            onNext={handleNext}
-          >
-            <PersonalInfoStep onNext={handleNext} />
-          </StepContainer>
-        );
+        return <PersonalInfoStep />;
       case 2:
-        return (
-          <StepContainer
-            title={t('steps.jobInterest')}
-            description="Tell us about your career interests"
-            onNext={handleNext}
-            onBack={handleBack}
-          >
-            <JobInterestStep onNext={handleNext} onBack={handleBack} />
-          </StepContainer>
-        );
+        return <JobInterestStep />;
       case 3:
-        return (
-          <StepContainer
-            title={t('steps.notifications')}
-            description="Choose your notification preferences"
-            onNext={handleNext}
-            onBack={handleBack}
-          >
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
-              Notifications Step - Coming Soon
-            </div>
-          </StepContainer>
-        );
+        return <NotificationsStep />;
       case 4:
         return (
-          <StepContainer
-            title={t('steps.confirmation')}
-            description="Review and confirm your application"
-            onBack={handleBack}
-            isLastStep
-          >
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
-              Confirmation Step - Coming Soon
-            </div>
-          </StepContainer>
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
+            Confirmation Step - Coming Soon
+          </div>
         );
       default:
         return null;
@@ -93,10 +58,12 @@ export default function HomePage() {
     <div
       style={{
         minHeight: '100vh',
+        width: '100%',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem',
+        padding: '2rem 1rem',
+        boxSizing: 'border-box',
       }}
     >
       <FormWizard
@@ -104,6 +71,9 @@ export default function HomePage() {
         totalSteps={4}
         stepTitles={stepTitles}
         onStepClick={handleStepClick}
+        onNext={handleNext}
+        onBack={handleBack}
+        isLastStep={currentStep === 4}
       >
         {renderCurrentStep()}
       </FormWizard>
