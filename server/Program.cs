@@ -1,5 +1,6 @@
 using Server.Services.Interfaces;
 using Server.Services.Implementations;
+using Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +12,9 @@ builder.Services.AddSwaggerGen();
 
 // הגדרת שירותים
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<FormService>();
 builder.Services.AddScoped<IFormStateService, FormStateService>();
+builder.Services.AddScoped<IReferenceDataService, ReferenceDataService>();
 
 // הגדרת CORS
 builder.Services.AddCors(options =>
@@ -21,7 +24,8 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins("http://localhost:3000")
                   .AllowAnyHeader()
-                  .AllowAnyMethod();
+                  .AllowAnyMethod()
+                  .AllowCredentials();
         });
 });
 
