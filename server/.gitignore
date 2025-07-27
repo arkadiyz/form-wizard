@@ -13,3 +13,4 @@ obj/
 
 # אפשר גם להוסיף הגנה ל־appsettings עם מידע פרטי:
 appsettings.Development.json
+.md
