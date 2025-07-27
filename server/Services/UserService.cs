@@ -1,5 +1,5 @@
 using Dapper;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 
 public class UserService
 {

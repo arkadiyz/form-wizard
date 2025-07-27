@@ -1,5 +1,6 @@
 using Dapper;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
+using System.Data;
 using System.Xml.Linq;
 using Server.Models.DTOs;
 using Server.Services.Interfaces;
