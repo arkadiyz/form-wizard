@@ -113,34 +113,41 @@ public class ReferenceDataService : IReferenceDataService
     // Skills
     public async Task<List<SkillDto>> getSkillsAsync(SkillFilterRequest? filter = null)
     {
-        var cacheKey = $"{SkillsCacheKey}_{filter?.categoryId}_{filter?.searchTerm}";
+        var cacheKey = $"{SkillsCacheKey}_{filter?.categoryId}_{filter?.searchTerm}_{filter?.limit}";
 
         return await _cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(CacheExpirationMinutes);
 
             using var connection = new SqlConnection(_connectionString);
-            var sql = "SELECT id, categoryId, name, createdAt FROM Skills WHERE 1=1";
+            var sql = "SELECT ";
+            
+            // Add TOP clause if limit is specified
+            if (filter?.limit.HasValue == true)
+            {
+                sql += $"TOP ({filter.limit.Value}) ";
+            }
+            
+            sql += @"s.id, s.skillCategoryId as categoryId, s.name, s.createdAt, sc.name as category
+                FROM Skills s
+                INNER JOIN SkillCategories sc ON s.skillCategoryId = sc.id
+                WHERE 1=1";
+            
             var parameters = new DynamicParameters();
 
             if (filter?.categoryId.HasValue == true)
             {
-                sql += " AND categoryId = @categoryId";
+                sql += " AND s.skillCategoryId = @categoryId";
                 parameters.Add("categoryId", filter.categoryId.Value);
             }
 
             if (!string.IsNullOrEmpty(filter?.searchTerm))
             {
-                sql += " AND name LIKE @searchTerm";
+                sql += " AND s.name LIKE @searchTerm";
                 parameters.Add("searchTerm", $"%{filter.searchTerm}%");
             }
 
-            sql += " ORDER BY name";
-
-            if (filter?.limit.HasValue == true)
-            {
-                sql = $"SELECT TOP ({filter.limit.Value}) * FROM ({sql}) AS LimitedResults";
-            }
+            sql += " ORDER BY s.name";
 
             var skills = await connection.QueryAsync<SkillDto>(sql, parameters);
             return skills.ToList();
@@ -167,7 +174,7 @@ public class ReferenceDataService : IReferenceDataService
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(CacheExpirationMinutes);
 
             using var connection = new SqlConnection(_connectionString);
-            const string sql = "SELECT id, name, createdAt FROM SkillsCategories ORDER BY name";
+            const string sql = "SELECT id, name, createdAt FROM SkillCategories ORDER BY name";
 
             var skillsCategories = await connection.QueryAsync<SkillsCategoryDto>(sql);
             return skillsCategories.ToList();

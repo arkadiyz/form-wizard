@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import styles from './Input.module.css';
 
 export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
@@ -28,29 +28,21 @@ export const Input: React.FC<InputProps> = ({
   clearable = true,
   dir = 'ltr',
   className,
-  onChange, // הוספתי את זה
+  onChange,
   ...props
 }) => {
-  const [value, setValue] = useState(props.value || '');
+  // פשוט יותר - אין state פנימי, השתמש רק בערך מ-props
   const [hasInteracted, setHasInteracted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const value = props.value || '';
   const showError = hasInteracted && error;
   const showClear = clearable && value && !props.disabled;
 
-  useEffect(() => {
-    if (props.value !== undefined) {
-      setValue(props.value);
-    }
-  }, [props.value]);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setValue(newValue);
-
-    // קורא גם ל-onChange וגם ל-onValueChange
+    // קורא ישירות ל-onChange של Controller
     onChange?.(e);
-    onValueChange?.(newValue);
+    onValueChange?.(e.target.value);
 
     if (hasInteracted) {
       onValidationTrigger?.();
@@ -73,9 +65,6 @@ export const Input: React.FC<InputProps> = ({
   };
 
   const handleClear = () => {
-    setValue('');
-    onValueChange?.('');
-
     // יוצר synthetic event לטופס
     const clearEvent = {
       target: { value: '' },
@@ -83,6 +72,7 @@ export const Input: React.FC<InputProps> = ({
     } as React.ChangeEvent<HTMLInputElement>;
 
     onChange?.(clearEvent);
+    onValueChange?.('');
     inputRef.current?.focus();
 
     if (hasInteracted) {

@@ -51,6 +51,16 @@
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
+/* עדכון השדה כשהרשימה פתוחה */
+.input:focus,
+.input[aria-expanded='true'] {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-bottom-left-radius: 0; /* הסרת עיגול תחתון כשהרשימה פתוחה */
+  border-bottom-right-radius: 0;
+}
+
 .clearButton {
   position: absolute;
   right: 0.75rem;
@@ -76,22 +86,24 @@
 
 .suggestions {
   position: absolute;
-  top: 100%;
+  top: calc(100% - 1px); /* חפיפה של 1px עם השדה */
   left: 0;
   right: 0;
   z-index: 50;
   background: #ffffff;
-  border: 1px solid #d1d5db;
+  border: 1px solid #3b82f6; /* אותו צבע כמו השדה בפוקוס */
   border-radius: 0.5rem;
   box-shadow:
     0 10px 15px -3px rgba(0, 0, 0, 0.1),
     0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  margin-top: 0.25rem;
+  margin: 0;
   max-height: 15rem;
   overflow-y: auto;
   list-style: none;
-  margin: 0.25rem 0 0 0;
   padding: 0.25rem 0;
+  border-top: none; /* הסרת הגבול העליון */
+  border-top-left-radius: 0; /* הסרת עיגול עליון */
+  border-top-right-radius: 0; /* הסרת עיגול עליון */
 }
 
 .suggestion {

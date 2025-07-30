@@ -197,4 +197,64 @@ public class ReferenceController : ControllerBase
             });
         }
     }
+
+    [HttpGet("roles/{categoryId}")]
+    public async Task<ActionResult<ApiResponse<List<RoleDto>>>> getRolesByCategory(Guid categoryId)
+    {
+        try
+        {
+            var filter = new RoleFilterRequest { categoryId = categoryId };
+            var roles = await _referenceDataService.getRolesAsync(filter);
+            
+            return Ok(new ApiResponse<List<RoleDto>>
+            {
+                success = true,
+                message = "Roles retrieved successfully",
+                data = roles
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<List<RoleDto>>
+            {
+                success = false,
+                message = "Failed to retrieve roles",
+                errors = [ex.Message]
+            });
+        }
+    }
+
+    [HttpGet("skills/{categoryId?}")]
+    public async Task<ActionResult<ApiResponse<List<SkillDto>>>> getSkillsByCategory(
+        Guid? categoryId = null,
+        [FromQuery] string? search = null,
+        [FromQuery] int limit = 50)
+    {
+        try
+        {
+            var filter = new SkillFilterRequest
+            {
+                categoryId = categoryId,
+                searchTerm = search,
+                limit = limit
+            };
+            
+            var skills = await _referenceDataService.getSkillsAsync(filter);
+            return Ok(new ApiResponse<List<SkillDto>>
+            {
+                success = true,
+                message = "Skills retrieved successfully",
+                data = skills
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<List<SkillDto>>
+            {
+                success = false,
+                message = "Failed to retrieve skills",
+                errors = [ex.Message]
+            });
+        }
+    }
 }

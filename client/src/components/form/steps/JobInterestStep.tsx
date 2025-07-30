@@ -1,248 +1,318 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useMemo } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { JobInterestSchema, type JobInterest } from '../../../schemas/formSchemas';
 import { useFormStore } from '../../../store/formStore';
-import { Autocomplete, Dropdown, Chips } from '../../ui';
+import { Autocomplete, Dropdown } from '../../ui';
 import { FormGrid } from '../FormGrid';
 import { StepHeader } from '../StepHeader';
+import { referenceDataService } from '../../../services/referenceDataService';
 import styles from './JobInterestStep.module.css';
 
 interface JobInterestStepProps {
   locale?: string;
 }
 
-// Mock data - later will come from API
-const mockCategories = [
-  { id: '1', label: 'Software Development', value: 'software' },
-  { id: '2', label: 'Marketing', value: 'marketing' },
-  { id: '3', label: 'Design', value: 'design' },
-  { id: '4', label: 'Student', value: 'student' },
-  { id: '5', label: 'No Experience', value: 'no-experience' },
-];
-
-const mockRoles = {
-  software: [
-    { id: '1', label: 'Web Developer', value: 'web-dev' },
-    { id: '2', label: 'Mobile Developer', value: 'mobile-dev' },
-    { id: '3', label: 'Full Stack Engineer', value: 'fullstack' },
-    { id: '4', label: 'DevOps Engineer', value: 'devops' },
-  ],
-  marketing: [
-    { id: '5', label: 'Digital Marketing', value: 'digital-marketing' },
-    { id: '6', label: 'Content Creator', value: 'content' },
-    { id: '7', label: 'SEO Specialist', value: 'seo' },
-  ],
-  design: [
-    { id: '8', label: 'UI/UX Designer', value: 'uiux' },
-    { id: '9', label: 'Graphic Designer', value: 'graphic' },
-    { id: '10', label: 'Product Designer', value: 'product' },
-  ],
-  student: [
-    { id: '11', label: 'Internship', value: 'internship' },
-    { id: '12', label: 'Part-time Student', value: 'part-time' },
-  ],
-  'no-experience': [
-    { id: '13', label: 'Entry Level', value: 'entry' },
-    { id: '14', label: 'Trainee', value: 'trainee' },
-  ],
-};
-
-const mockLocations = [
-  { id: '1', label: 'Tel Aviv', value: 'tel-aviv' },
-  { id: '2', label: 'Jerusalem', value: 'jerusalem' },
-  { id: '3', label: 'Haifa', value: 'haifa' },
-  { id: '4', label: 'Beer Sheva', value: 'beer-sheva' },
-  { id: '5', label: 'Remote', value: 'remote' },
-];
-
-// Extended skills pool for replacement system
-const allMockSkills = [
-  // Mandatory skills pool
-  { id: '1', label: 'React', value: 'react' },
-  { id: '2', label: 'JavaScript', value: 'javascript' },
-  { id: '3', label: 'Node.js', value: 'nodejs' },
-  { id: '4', label: 'HTML', value: 'html' },
-  { id: '5', label: 'CSS', value: 'css' },
-  { id: '6', label: 'Python', value: 'python' },
-  { id: '7', label: 'Java', value: 'java' },
-  { id: '8', label: 'SQL', value: 'sql' },
-  { id: '9', label: 'PHP', value: 'php' },
-  { id: '10', label: 'C#', value: 'csharp' },
-  { id: '11', label: 'Angular', value: 'angular' },
-  { id: '12', label: 'Vue.js', value: 'vue' },
-  // Advantage skills pool
-  { id: '13', label: 'TypeScript', value: 'typescript' },
-  { id: '14', label: 'Git', value: 'git' },
-  { id: '15', label: 'Docker', value: 'docker' },
-  { id: '16', label: 'AWS', value: 'aws' },
-  { id: '17', label: 'MongoDB', value: 'mongodb' },
-  { id: '18', label: 'GraphQL', value: 'graphql' },
-  { id: '19', label: 'Redux', value: 'redux' },
-  { id: '20', label: 'Sass', value: 'sass' },
-  { id: '21', label: 'Webpack', value: 'webpack' },
-  { id: '22', label: 'Jest', value: 'jest' },
-  { id: '23', label: 'Figma', value: 'figma' },
-  { id: '24', label: 'Adobe XD', value: 'adobe-xd' },
-];
-
 export const JobInterestStep: React.FC<JobInterestStepProps> = ({ locale = 'en' }) => {
   const { formData, updateJobInterest } = useFormStore();
 
-  // Category/Role state
-  const [selectedCategory, setSelectedCategory] = useState(formData.jobInterest.categoryId);
-
-  // Skills state management
-  const [mandatorySkills, setMandatorySkills] = useState<string[]>([]);
-  const [advantageSkills, setAdvantageSkills] = useState<string[]>([]);
-  const [removedSkills, setRemovedSkills] = useState<string[]>([]);
-  const [showLimitNotification, setShowLimitNotification] = useState(false);
-
-  // Available skills for display (8 chips initially: 4 + 4)
-  const [availableMandatory, setAvailableMandatory] = useState<typeof allMockSkills>([]);
-  const [availableAdvantage, setAvailableAdvantage] = useState<typeof allMockSkills>([]);
-
-  // Initialize 8 recommended chips (4 mandatory + 4 advantage)
-  useEffect(() => {
-    const shuffled = [...allMockSkills].sort(() => 0.5 - Math.random());
-    setAvailableMandatory(shuffled.slice(0, 4));
-    setAvailableAdvantage(shuffled.slice(4, 8));
-  }, []);
-
-  const { handleSubmit, setValue } = useForm<JobInterest>({
+  // React Hook Form setup
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+    setError,
+    clearErrors,
+  } = useForm<JobInterest>({
     resolver: zodResolver(JobInterestSchema),
     defaultValues: formData.jobInterest,
-    mode: 'onChange',
+    mode: 'onBlur',
   });
 
+  // Watch for changes - using useMemo to satisfy React Hook rules
+  const categoryIds = useMemo(() => watch('categoryIds') || [], [watch]);
+  const roleIds = useMemo(() => watch('roleIds') || [], [watch]);
+
+  // React Query for data fetching
+  const {
+    data: categories = [],
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useQuery({
+    queryKey: ['categories'],
+    queryFn: referenceDataService.getCategories,
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Get the actual category objects to check names - moved after categories are loaded
+  const getSpecialCategoryIds = useMemo(() => {
+    if (!categories || categories.length === 0) return { studentId: null, noExpId: null };
+
+    const studentCategory = categories.find((cat) => cat.label.toLowerCase().includes('student'));
+
+    const noExpCategory = categories.find(
+      (cat) =>
+        cat.label.toLowerCase().includes('no') && cat.label.toLowerCase().includes('experience'),
+    );
+
+    return {
+      studentId: studentCategory?.value || null,
+      noExpId: noExpCategory?.value || null,
+    };
+  }, [categories]);
+
+  // Calculate dynamic category limit and validation
+  const getCategoryValidation = useMemo(() => {
+    const { studentId, noExpId } = getSpecialCategoryIds;
+    const hasStudentExperience = studentId && categoryIds.includes(studentId);
+    const hasNoExperience = noExpId && categoryIds.includes(noExpId);
+
+    // If user already selected one of the special categories, allow up to 3 total
+    if (hasStudentExperience || hasNoExperience) {
+      return {
+        maxSelections: 3,
+        canAddMore: categoryIds.length < 3,
+        message: hasStudentExperience
+          ? "With 'Student' selected, you can choose up to 3 categories total"
+          : "With 'No Experience' selected, you can choose up to 3 categories total",
+      };
+    }
+
+    // If user has exactly 2 regular categories, they can still add a special category
+    if (categoryIds.length === 2 && !hasStudentExperience && !hasNoExperience) {
+      return {
+        maxSelections: 3, // Allow them to add the special category as 3rd
+        canAddMore: true,
+        message: 'You can add Student or No Experience as a 3rd category',
+      };
+    }
+
+    // Regular categories - can select up to 2
+    return {
+      maxSelections: 2,
+      canAddMore: categoryIds.length < 2,
+      message: 'Select up to 2 categories (or 3 if including Student/No Experience)',
+    };
+  }, [categoryIds, getSpecialCategoryIds]);
+
+  // Calculate dynamic role limits based on categories
+  const getRoleLimit = useMemo(() => {
+    const categoryCount = categoryIds.length;
+
+    if (categoryCount === 0) {
+      return 0; // No categories selected
+    }
+
+    if (categoryCount === 1) {
+      return 3; // 1 category = up to 3 roles
+    } else if (categoryCount === 2) {
+      return 4; // 2 categories = up to 2 roles from each = 4 total
+    }
+
+    return 0;
+  }, [categoryIds]);
+
+  const {
+    data: roles = [],
+    isLoading: rolesLoading,
+    error: rolesError,
+  } = useQuery({
+    queryKey: ['roles', categoryIds],
+    queryFn: () => {
+      if (categoryIds.length === 0) return Promise.resolve([]);
+      console.log('🔍 Calling getRolesByCategories with categories:', categoryIds);
+      return referenceDataService.getRolesByCategories(categoryIds);
+    },
+    enabled: categoryIds.length > 0,
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Debug: Log roles data when it changes
+  React.useEffect(() => {
+    console.log('📊 Roles data updated:', {
+      rolesCount: roles.length,
+      roles: roles.slice(0, 3), // Show first 3 roles
+      isLoading: rolesLoading,
+      error: rolesError,
+      categoryIds,
+    });
+  }, [roles, rolesLoading, rolesError, categoryIds]);
+
+  const {
+    data: locations = [],
+    isLoading: locationsLoading,
+    error: locationsError,
+  } = useQuery({
+    queryKey: ['locations'],
+    queryFn: referenceDataService.getLocations,
+    retry: 2,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const {
+    data: skills = [],
+    isLoading: skillsLoading,
+    error: skillsError,
+  } = useQuery({
+    queryKey: ['skills'],
+    queryFn: () => referenceDataService.getSkillsByCategory(),
+    retry: 2,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  // Custom validation for roles based on categories
+  const validateRoles = (selectedRoles: string[]) => {
+    const limit = getRoleLimit;
+
+    if (selectedRoles.length > limit) {
+      const categoryCount = categoryIds.length;
+      let message = '';
+
+      if (categoryCount === 1) {
+        message = `With 1 category selected, you can choose up to 3 roles (currently ${selectedRoles.length})`;
+      } else if (categoryCount === 2) {
+        message = `With 2 categories selected, you can choose up to 2 roles from each category (max 4 total, currently ${selectedRoles.length})`;
+      } else {
+        message = `You can select up to ${limit} roles with your current categories (currently ${selectedRoles.length})`;
+      }
+
+      setError('roleIds', { message });
+      return false;
+    } else {
+      clearErrors('roleIds');
+      return true;
+    }
+  };
+
+  // Custom validation for category selection
+  const validateCategorySelection = (currentSelections: string[], newSelection: string) => {
+    const { studentId, noExpId } = getSpecialCategoryIds;
+
+    // If trying to add a special category
+    if (newSelection === studentId || newSelection === noExpId) {
+      // Can't have both special categories
+      if (
+        (newSelection === studentId && currentSelections.includes(noExpId || '')) ||
+        (newSelection === noExpId && currentSelections.includes(studentId || ''))
+      ) {
+        return {
+          canAdd: false,
+          reason: "Cannot select both 'Student' and 'No Experience'",
+        };
+      }
+
+      // Always allow adding special category if under 3 total
+      if (currentSelections.length >= 3) {
+        return {
+          canAdd: false,
+          reason: 'Maximum 3 categories allowed',
+        };
+      }
+
+      return { canAdd: true };
+    }
+
+    // Trying to add a regular category
+    const hasStudentExperience = currentSelections.includes(studentId || '');
+    const hasNoExperience = currentSelections.includes(noExpId || '');
+
+    // If we have a special category, allow up to 3 total
+    if (hasStudentExperience || hasNoExperience) {
+      if (currentSelections.length >= 3) {
+        return {
+          canAdd: false,
+          reason: 'Maximum 3 categories allowed with Student/No Experience',
+        };
+      }
+    } else {
+      // No special categories - allow up to 2 regular categories
+      // But if they have exactly 2, they can still add a special category later
+      if (currentSelections.length >= 2) {
+        return {
+          canAdd: false,
+          reason: 'Maximum 2 regular categories (you can still add Student/No Experience as 3rd)',
+        };
+      }
+    }
+
+    return { canAdd: true };
+  };
+
+  // Handle category changes - fixed type signature
+  const handleCategoryChange = (value: string | string[]) => {
+    const newCategoryIds = Array.isArray(value) ? value : [value];
+    setValue('categoryIds', newCategoryIds);
+
+    // If reducing categories, check if current roles are still valid
+    const currentRoles = roleIds;
+    if (currentRoles.length > 0) {
+      // Re-validate roles with new category selection
+      setTimeout(() => validateRoles(currentRoles), 100);
+    }
+  };
+
+  // Handle role changes - fixed to allow selection properly
+  const handleRoleChange = (value: string | string[]) => {
+    const newRoleIds = Array.isArray(value) ? value : [value];
+
+    // Always allow the change - validation will handle limits
+    setValue('roleIds', newRoleIds);
+
+    // Validate after setting the value
+    validateRoles(newRoleIds);
+  };
+
+  // Loading state
+  if (categoriesLoading || locationsLoading || skillsLoading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.spinner}></div>
+        <p>Loading job preferences...</p>
+      </div>
+    );
+  }
+
+  // Error states
+  if (categoriesError || locationsError || skillsError) {
+    return (
+      <div className={styles.errorContainer}>
+        <h3>Unable to load job preferences</h3>
+        <p>Please check your connection and try again.</p>
+        <button onClick={() => window.location.reload()} className={styles.retryButton}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   const onSubmit = (data: JobInterest) => {
+    // Final validation before submit
+    if (!validateRoles(data.roleIds)) {
+      return;
+    }
     updateJobInterest(data);
-    // Remove onNext call since FormWizard handles navigation
   };
 
-  const handleCategoryChange = (categoryValue: string | string[]) => {
-    const value = Array.isArray(categoryValue) ? categoryValue[0] : categoryValue;
-    setSelectedCategory(value);
-    setValue('categoryId', value, { shouldValidate: true });
-    setValue('roleIds', [], { shouldValidate: true });
-  };
-
-  const handleRoleChange = (roleIds: string | string[]) => {
-    const values = Array.isArray(roleIds) ? roleIds : [roleIds];
-    setValue('roleIds', values, { shouldValidate: true });
-  };
-
-  const handleLocationChange = (locationId: string) => {
-    setValue('locationId', locationId, { shouldValidate: true });
-  };
-
-  // Calculate total skills
-  const totalSkills = mandatorySkills.length + advantageSkills.length;
-  const maxSkills = 10;
-
-  // Handle mandatory skills with mutual exclusivity and limits
-  const handleMandatorySkillsChange = (selectedValues: string[]) => {
-    // Check if trying to exceed limit
-    const newTotal = selectedValues.length + advantageSkills.length;
-    if (newTotal > maxSkills) {
-      showSkillLimitNotification();
-      return;
-    }
-
-    // Remove from advantage if exists (mutual exclusivity)
-    const cleanedAdvantageSkills = advantageSkills.filter(
-      (skill) => !selectedValues.includes(skill),
-    );
-
-    // Update states
-    setMandatorySkills(selectedValues);
-    setAdvantageSkills(cleanedAdvantageSkills);
-
-    // Update form with combined skills
-    const allSkills = [...selectedValues, ...cleanedAdvantageSkills];
-    setValue('skills', allSkills, { shouldValidate: true });
-
-    // Handle chip replacement
-    replaceRemovedChips(selectedValues, availableMandatory, setAvailableMandatory);
-  };
-
-  // Handle advantage skills with mutual exclusivity and limits
-  const handleAdvantageSkillsChange = (selectedValues: string[]) => {
-    // Check if trying to exceed limit
-    const newTotal = mandatorySkills.length + selectedValues.length;
-    if (newTotal > maxSkills) {
-      showSkillLimitNotification();
-      return;
-    }
-
-    // Remove from mandatory if exists (mutual exclusivity)
-    const cleanedMandatorySkills = mandatorySkills.filter(
-      (skill) => !selectedValues.includes(skill),
-    );
-
-    // Update states
-    setAdvantageSkills(selectedValues);
-    setMandatorySkills(cleanedMandatorySkills);
-
-    // Update form with combined skills
-    const allSkills = [...cleanedMandatorySkills, ...selectedValues];
-    setValue('skills', allSkills, { shouldValidate: true });
-
-    // Handle chip replacement
-    replaceRemovedChips(selectedValues, availableAdvantage, setAvailableAdvantage);
-  };
-
-  // Replace removed chips with new ones
-  const replaceRemovedChips = (
-    currentSelection: string[],
-    currentAvailable: typeof allMockSkills,
-    setAvailable: React.Dispatch<React.SetStateAction<typeof allMockSkills>>,
-  ) => {
-    // Find removed chips (chips that were available but not selected anymore)
-    const previouslyAvailable = currentAvailable.map((chip) => chip.value);
-    const removedChips = previouslyAvailable.filter(
-      (chip) =>
-        !currentSelection.includes(chip) &&
-        currentAvailable.some((available) => available.value === chip),
-    );
-
-    if (removedChips.length > 0) {
-      // Add to removed list so they don't appear again
-      setRemovedSkills((prev) => [...prev, ...removedChips]);
-
-      // Find replacement chips
-      const usedSkills = [...mandatorySkills, ...advantageSkills, ...currentSelection];
-      const replacementChips = allMockSkills
-        .filter(
-          (skill) =>
-            !usedSkills.includes(skill.value) &&
-            !removedSkills.includes(skill.value) &&
-            !removedChips.includes(skill.value),
-        )
-        .slice(0, removedChips.length);
-
-      // Update available chips
-      setAvailable((prev) => [
-        ...prev.filter((chip) => currentSelection.includes(chip.value)),
-        ...replacementChips,
-      ]);
+  const getRolePlaceholder = () => {
+    const categoryCount = categoryIds.length;
+    if (categoryCount === 0) {
+      return 'Select categories first to see available roles';
+    } else if (categoryCount === 1) {
+      return 'Select up to 3 roles from your category';
+    } else if (categoryCount === 2) {
+      return 'Select up to 2 roles from each category';
+    } else {
+      return `Select up to ${getRoleLimit} roles from your categories`;
     }
   };
-
-  // Show notification for skill limit with auto-close
-  const showSkillLimitNotification = () => {
-    setShowLimitNotification(true);
-    setTimeout(() => {
-      setShowLimitNotification(false);
-    }, 5000);
-  };
-
-  const availableRoles = selectedCategory
-    ? mockRoles[selectedCategory as keyof typeof mockRoles] || []
-    : [];
 
   return (
     <motion.div
@@ -256,95 +326,109 @@ export const JobInterestStep: React.FC<JobInterestStepProps> = ({ locale = 'en' 
         subtitle="Tell us about your job preferences and showcase your skills."
       />
 
-      {/* Skill Limit Notification */}
-      {showLimitNotification && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className={styles.notification}
-        >
-          <div className={styles.notificationContent}>
-            <span>You can choose up to 10 mandatory and advantage skills total</span>
-            <button
-              onClick={() => setShowLimitNotification(false)}
-              className={styles.notificationClose}
-            >
-              ×
-            </button>
-          </div>
-        </motion.div>
-      )}
-
       <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
         <FormGrid columns={1} gap="lg">
-          {/* Category Selection */}
-          <Autocomplete
-            label="Job Category"
-            placeholder="Start typing to search categories..."
-            options={mockCategories}
-            onSelectionChange={handleCategoryChange}
-            isRequired
-            dir={locale === 'he' ? 'rtl' : 'ltr'}
+          {/* Job Categories - Multi-select */}
+          <Controller
+            name="categoryIds"
+            control={control}
+            render={({ field }) => (
+              <Autocomplete
+                label="Job Categories"
+                placeholder="Select up to 2 categories..."
+                options={categories}
+                selectedValues={field.value || []}
+                onSelectionChange={handleCategoryChange}
+                multiSelect
+                maxSelections={getCategoryValidation.maxSelections}
+                customValidation={validateCategorySelection}
+                isRequired
+                error={errors.categoryIds?.message}
+                dir={locale === 'he' ? 'rtl' : 'ltr'}
+              />
+            )}
           />
 
-          {/* Role Selection - Only show when category is selected */}
-          {selectedCategory && (
-            <Autocomplete
-              label="Job Roles"
-              placeholder="Select up to 3 roles..."
-              options={availableRoles}
-              onSelectionChange={handleRoleChange}
-              multiSelect
-              maxSelections={
-                selectedCategory === 'student' || selectedCategory === 'no-experience' ? 2 : 3
-              }
-              isRequired
-              dir={locale === 'he' ? 'rtl' : 'ltr'}
-            />
-          )}
-
-          {/* Location Selection */}
-          <Dropdown
-            label="Location"
-            placeholder="Select your preferred location"
-            options={mockLocations}
-            onSelectionChange={handleLocationChange}
-            isRequired
-            dir={locale === 'he' ? 'rtl' : 'ltr'}
+          {/* Job Roles - Multi-select, dependent on categories */}
+          <Controller
+            name="roleIds"
+            control={control}
+            render={({ field }) => (
+              <div>
+                {categoryIds.length > 0 && (
+                  <>
+                    {rolesLoading ? (
+                      <div className={styles.loadingRoles}>
+                        <div className={styles.smallSpinner}></div>
+                        <span>Loading roles...</span>
+                      </div>
+                    ) : rolesError ? (
+                      <div className={styles.errorRoles}>
+                        <span>Failed to load roles</span>
+                      </div>
+                    ) : (
+                      <Autocomplete
+                        label="Job Roles"
+                        placeholder="Select roles based on your categories..."
+                        options={roles}
+                        selectedValues={field.value || []}
+                        onSelectionChange={handleRoleChange}
+                        multiSelect
+                        maxSelections={getRoleLimit}
+                        isRequired
+                        error={errors.roleIds?.message}
+                        dir={locale === 'he' ? 'rtl' : 'ltr'}
+                      />
+                    )}
+                  </>
+                )}
+                {categoryIds.length === 0 && (
+                  <div className={styles.roleHint}>
+                    Please select job categories first to see available roles
+                  </div>
+                )}
+              </div>
+            )}
           />
 
-          {/* Skills Selection */}
-          <div className={styles.skillsSection}>
-            <h3>Skills & Preferences</h3>
-            <p className={styles.skillsHint}>
-              Add up to 10 skills ({totalSkills}/{maxSkills})
-            </p>
+          {/* Location */}
+          <Controller
+            name="locationId"
+            control={control}
+            render={({ field }) => (
+              <Dropdown
+                label="Preferred Location"
+                placeholder="Select your preferred work location"
+                options={locations}
+                value={field.value || ''}
+                onSelectionChange={field.onChange}
+                isRequired
+                error={errors.locationId?.message}
+                dir={locale === 'he' ? 'rtl' : 'ltr'}
+              />
+            )}
+          />
 
-            <div className={styles.skillsGrid}>
-              <div className={styles.skillColumn}>
-                <Chips
-                  label="Mandatory Skills"
-                  options={availableMandatory}
-                  selectedValues={mandatorySkills}
-                  onSelectionChange={handleMandatorySkillsChange}
-                  hint="Select your core skills"
-                  dir={locale === 'he' ? 'rtl' : 'ltr'}
-                />
-              </div>
-
-              <div className={styles.skillColumn}>
-                <Chips
-                  label="Advantage Skills"
-                  options={availableAdvantage}
-                  selectedValues={advantageSkills}
-                  onSelectionChange={handleAdvantageSkillsChange}
-                  hint="Nice to have skills"
-                  dir={locale === 'he' ? 'rtl' : 'ltr'}
-                />
-              </div>
-            </div>
-          </div>
+          {/* Skills - Multi-select */}
+          <Controller
+            name="skills"
+            control={control}
+            render={({ field }) => (
+              <Autocomplete
+                label="Skills"
+                placeholder="Select up to 10 skills..."
+                options={skills}
+                selectedValues={field.value || []}
+                onSelectionChange={field.onChange}
+                multiSelect
+                maxSelections={10}
+                isRequired
+                error={errors.skills?.message}
+                hint="Add your technical and professional skills"
+                dir={locale === 'he' ? 'rtl' : 'ltr'}
+              />
+            )}
+          />
         </FormGrid>
       </form>
     </motion.div>

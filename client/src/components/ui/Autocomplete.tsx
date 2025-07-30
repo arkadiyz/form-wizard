@@ -14,6 +14,7 @@ export interface AutocompleteProps {
   label?: string;
   placeholder?: string;
   options: AutocompleteOption[];
+  selectedValues?: string[]; // הוספת prop לערכים שנבחרו
   onSelectionChange?: (value: string | string[]) => void;
   isRequired?: boolean;
   error?: string;
@@ -22,11 +23,20 @@ export interface AutocompleteProps {
   multiSelect?: boolean;
   maxSelections?: number;
   isDisabled?: boolean;
+  // Add custom validation function
+  customValidation?: (
+    currentSelections: string[],
+    newSelection: string,
+  ) => {
+    canAdd: boolean;
+    reason?: string;
+  };
 }
 export const Autocomplete: React.FC<AutocompleteProps> = ({
   label,
   placeholder = 'Type to search...',
   options,
+  selectedValues: controlledSelectedValues,
   onSelectionChange,
   isRequired = false,
   error,
@@ -35,21 +45,56 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
   multiSelect = false,
   maxSelections,
   isDisabled = false,
+  customValidation,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [selectedValues, setSelectedValues] = useState<string[]>([]);
+  const [selectedValues, setSelectedValues] = useState<string[]>(controlledSelectedValues || []);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
   const showError = hasInteracted && error;
-  const minSearchLength = 3;
-  const maxSuggestions = 5;
+  const minSearchLength = 2; // הקטנת הדרישה מ-3 ל-2 תווים
+  const maxSuggestions = 8; // הגדלת מספר התוצאות
 
   // Filter options based on input
   const filteredOptions = useMemo(() => {
+    console.log('🔍 Autocomplete filteredOptions:', {
+      multiSelect,
+      optionsCount: options.length,
+      selectedValuesCount: selectedValues.length,
+      inputValue,
+      inputValueLength: inputValue.length,
+    });
+
+    // In multiSelect mode, show available options even without input
+    if (multiSelect) {
+      // Filter out already selected values
+      const availableOptions = options.filter((option) => !selectedValues.includes(option.value));
+
+      console.log('📊 Available options after filtering selected:', availableOptions.length);
+
+      if (!inputValue || inputValue.length === 0) {
+        const result = availableOptions.slice(0, maxSuggestions);
+        console.log('📤 Returning all available options:', result.length);
+        return result;
+      }
+
+      const searchTerm = inputValue.toLowerCase();
+      const filtered = availableOptions.filter(
+        (option) =>
+          option.label.toLowerCase().includes(searchTerm) ||
+          option.category?.toLowerCase().includes(searchTerm),
+      );
+
+      const result = filtered.slice(0, maxSuggestions);
+      console.log('📤 Returning filtered options:', result.length);
+      return result;
+    }
+
+    // For single select, keep the original behavior
     if (!inputValue || inputValue.length < minSearchLength) {
       return [];
     }
@@ -62,7 +107,7 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
     );
 
     return filtered.slice(0, maxSuggestions);
-  }, [inputValue, options]);
+  }, [inputValue, options, multiSelect, selectedValues]);
 
   useEffect(() => {
     setInputValue('');
@@ -85,10 +130,25 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // סנכרון ערכים חיצוניים עם state פנימי
+  useEffect(() => {
+    if (controlledSelectedValues) {
+      setSelectedValues(controlledSelectedValues);
+    }
+  }, [controlledSelectedValues]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
-    setIsOpen(newValue.length >= minSearchLength);
+
+    if (multiSelect) {
+      // In multiSelect, always show options when typing or when there are available options
+      setIsOpen(true);
+    } else {
+      // For single select, keep the original behavior
+      setIsOpen(newValue.length >= minSearchLength);
+    }
+
     setSelectedIndex(-1);
 
     if (hasInteracted) {
@@ -100,7 +160,11 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
     if (!hasInteracted) {
       setHasInteracted(true);
     }
-    if (inputValue.length >= minSearchLength) {
+
+    if (multiSelect) {
+      // In multiSelect, always show available options when focused
+      setIsOpen(true);
+    } else if (inputValue.length >= minSearchLength) {
       setIsOpen(true);
     }
   };
@@ -113,11 +177,24 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
 
   const handleOptionSelect = (option: AutocompleteOption) => {
     if (multiSelect) {
+      // Custom validation if provided
+      if (customValidation) {
+        const validation = customValidation(selectedValues, option.value);
+        if (!validation.canAdd) {
+          // Show validation error (e.g., via a toast or inline message)
+          console.warn(validation.reason);
+          return;
+        }
+      }
+
       const newValues = [...selectedValues, option.value];
       if (maxSelections && newValues.length > maxSelections) return;
 
       setSelectedValues(newValues);
       onSelectionChange?.(newValues);
+
+      // נקה את הטקסט בשדה הקלט כדי לאפשר חיפוש נוסף
+      setInputValue('');
     } else {
       setInputValue(option.label);
       onSelectionChange?.(option.value);
@@ -153,10 +230,20 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
     }
   };
 
-  const handleClear = () => {
+  const handleClearInput = () => {
+    // מנקה רק את הטקסט בשדה הקלט, לא את הבחירות
+    setInputValue('');
+    setIsOpen(false);
+    setSelectedIndex(-1);
+    inputRef.current?.focus();
+  };
+
+  const handleClearAll = () => {
+    // מנקה הכל - טקסט ובחירות
     setInputValue('');
     setSelectedValues([]);
     setIsOpen(false);
+    setSelectedIndex(-1);
     onSelectionChange?.(multiSelect ? [] : '');
     inputRef.current?.focus();
   };
@@ -230,12 +317,12 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
           role="combobox"
         />
 
-        {(inputValue || selectedValues.length > 0) && !isDisabled && (
+        {(inputValue || (!multiSelect && selectedValues.length > 0)) && !isDisabled && (
           <button
             type="button"
             className={styles.clearButton}
-            onClick={handleClear}
-            aria-label="Clear input"
+            onClick={multiSelect ? handleClearInput : handleClearAll}
+            aria-label={multiSelect ? 'Clear input text' : 'Clear selection'}
           >
             ×
           </button>

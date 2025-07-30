@@ -11,7 +11,7 @@ export interface PersonalInfo {
 }
 
 export interface JobInterest {
-  categoryId: string;
+  categoryIds: string[];
   roleIds: string[];
   locationId: string;
   skills: string[];
@@ -63,7 +63,7 @@ const initialFormData: FormData = {
     email: '',
   },
   jobInterest: {
-    categoryId: '',
+    categoryIds: [],
     roleIds: [],
     locationId: '',
     skills: [],
@@ -87,15 +87,27 @@ export const useFormStore = create<FormState>()(
       isLoading: false,
       isSaving: false,
 
-      setStep: (step) => set({ currentStep: step }),
+      setStep: (step) => {
+        console.log('🔄 STORE setStep called, changing from:', get().currentStep, 'to:', step);
+        set({ currentStep: step });
+      },
 
-      updatePersonalInfo: (data) =>
-        set((state) => ({
-          formData: {
-            ...state.formData,
-            personalInfo: { ...state.formData.personalInfo, ...data },
-          },
-        })),
+      updatePersonalInfo: (data) => {
+        console.log('🟢 STORE updatePersonalInfo called with:', data);
+        console.log('🟢 Current store before update:', get().formData.personalInfo);
+
+        set((state) => {
+          const newState = {
+            ...state,
+            formData: {
+              ...state.formData,
+              personalInfo: { ...state.formData.personalInfo, ...data },
+            },
+          };
+          console.log('🟢 New store state after update:', newState.formData.personalInfo);
+          return newState;
+        });
+      },
 
       updateJobInterest: (data) =>
         set((state) => ({

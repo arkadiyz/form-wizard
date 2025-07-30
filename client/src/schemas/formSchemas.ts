@@ -70,14 +70,21 @@ export const PersonalInfoSchema = z.object({
 
 export type PersonalInfo = z.infer<typeof PersonalInfoSchema>;
 
-// Enhanced Job Interest Schema
+// Enhanced Job Interest Schema with dynamic role limits
 export const JobInterestSchema = z.object({
-  categoryId: z.string().min(1, '🎯 Please select a job category that interests you!'),
+  categoryIds: z
+    .array(z.string())
+    .min(1, '🎯 Please select at least one job category that interests you!')
+    .max(3, 'Please select up to 3 job categories to focus your search'),
 
   roleIds: z
     .array(z.string())
     .min(1, '💼 Please select at least one job role!')
-    .max(5, 'Please select no more than 5 job roles to focus your search'),
+    .refine((roles, ctx) => {
+      // Dynamic validation based on categories will be handled in component
+      // This is a fallback max limit
+      return roles.length <= 6; // Max possible: 2 categories × 3 roles each
+    }, 'Please select valid number of roles based on your categories'),
 
   locationId: z.string().min(1, "📍 Please tell us where you'd like to work!"),
 
@@ -89,14 +96,6 @@ export const JobInterestSchema = z.object({
       // Ensure no duplicate skills
       return new Set(skills).size === skills.length;
     }, 'Please remove duplicate skills'),
-
-  experienceLevel: z.enum(['entry', 'junior', 'mid', 'senior', 'expert']).optional(),
-
-  salaryExpectation: z
-    .number()
-    .min(0, 'Salary cannot be negative')
-    .max(100000, 'Please enter a realistic salary expectation')
-    .optional(),
 });
 
 export type JobInterest = z.infer<typeof JobInterestSchema>;

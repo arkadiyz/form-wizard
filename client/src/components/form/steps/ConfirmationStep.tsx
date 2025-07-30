@@ -154,9 +154,11 @@ export const ConfirmationStep = forwardRef<ConfirmationStepRef, ConfirmationStep
             </div>
             <div className={styles.cardContent}>
               <div className={styles.dataRow}>
-                <span className={styles.label}>Category:</span>
+                <span className={styles.label}>Categories:</span>
                 <span className={styles.value}>
-                  {formData.jobInterest.categoryId || 'Not selected'}
+                  {formData.jobInterest.categoryIds?.length > 0
+                    ? formData.jobInterest.categoryIds.join(', ')
+                    : 'Not selected'}
                 </span>
               </div>
               <div className={styles.dataRow}>

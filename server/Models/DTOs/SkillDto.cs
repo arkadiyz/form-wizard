@@ -7,6 +7,7 @@ public class SkillDto
     public Guid id { get; set; }
     public Guid categoryId { get; set; }
     public string name { get; set; } = string.Empty;
+    public string category { get; set; } = string.Empty; // mandatory או advantage
     public DateTime createdAt { get; set; }
 }
 
