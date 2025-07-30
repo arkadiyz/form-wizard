@@ -83,6 +83,9 @@ public class FormService
 
     private async Task SaveJobRegistrationAsync(SqlConnection connection, System.Data.IDbTransaction transaction, Guid userId, JobInterestDto jobInterest)
     {
+        // For now, we'll use the first category as the main category (for backward compatibility with existing DB structure)
+        var primaryCategoryId = jobInterest.categoryIds?.FirstOrDefault();
+        
         const string sql = @"
             INSERT INTO JobRegistrations (id, userId, categoryId, locationId, experienceLevel, salaryExpectation, createdAt, updatedAt)
             VALUES (@Id, @UserId, @CategoryId, @LocationId, @ExperienceLevel, @SalaryExpectation, GETUTCDATE(), GETUTCDATE())";
@@ -93,7 +96,7 @@ public class FormService
         {
             Id = jobRegistrationId,
             UserId = userId,
-            CategoryId = jobInterest.categoryId,
+            CategoryId = primaryCategoryId,
             LocationId = jobInterest.locationId,
             ExperienceLevel = jobInterest.experienceLevel,
             SalaryExpectation = jobInterest.salaryExpectation
@@ -105,7 +108,19 @@ public class FormService
             await SaveJobRegistrationRolesAsync(connection, transaction, jobRegistrationId, jobInterest.roleIds);
         }
 
-        // שמירת הכישורים
+        // שמירת הכישורים החובה
+        if (jobInterest.mandatorySkills?.Any() == true)
+        {
+            await SaveJobRegistrationSkillsAsync(connection, transaction, jobRegistrationId, jobInterest.mandatorySkills);
+        }
+
+        // שמירת כישורי היתרון
+        if (jobInterest.advantageSkills?.Any() == true)
+        {
+            await SaveJobRegistrationSkillsAsync(connection, transaction, jobRegistrationId, jobInterest.advantageSkills);
+        }
+
+        // שמירת כישורים רגילים (לתאימות לאחור)
         if (jobInterest.skillIds?.Any() == true)
         {
             await SaveJobRegistrationSkillsAsync(connection, transaction, jobRegistrationId, jobInterest.skillIds);

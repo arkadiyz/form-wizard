@@ -144,13 +144,21 @@ public class FormStateService : IFormStateService
                     new XElement("Email", formData.personalInfo.email)
                 ),
                 new XElement("JobInterest",
-                    new XElement("CategoryId", formData.jobInterest.categoryId?.ToString() ?? ""),
+                    new XElement("CategoryIds",
+                        formData.jobInterest.categoryIds?.Select(id => new XElement("CategoryId", id)) ?? Enumerable.Empty<XElement>()
+                    ),
                     new XElement("RoleIds",
-                        formData.jobInterest.roleIds.Select(id => new XElement("RoleId", id))
+                        formData.jobInterest.roleIds?.Select(id => new XElement("RoleId", id)) ?? Enumerable.Empty<XElement>()
                     ),
                     new XElement("LocationId", formData.jobInterest.locationId?.ToString() ?? ""),
+                    new XElement("MandatorySkills",
+                        formData.jobInterest.mandatorySkills?.Select(skill => new XElement("SkillId", skill)) ?? Enumerable.Empty<XElement>()
+                    ),
+                    new XElement("AdvantageSkills",
+                        formData.jobInterest.advantageSkills?.Select(skill => new XElement("SkillId", skill)) ?? Enumerable.Empty<XElement>()
+                    ),
                     new XElement("SkillIds",
-                        formData.jobInterest.skillIds.Select(skill => new XElement("SkillId", skill))
+                        formData.jobInterest.skillIds?.Select(skill => new XElement("SkillId", skill)) ?? Enumerable.Empty<XElement>()
                     ),
                     new XElement("ExperienceLevel", formData.jobInterest.experienceLevel ?? ""),
                     new XElement("SalaryExpectation", formData.jobInterest.salaryExpectation?.ToString() ?? "")
@@ -191,12 +199,23 @@ public class FormStateService : IFormStateService
             },
             jobInterest = new JobInterestDto
             {
-                categoryId = Guid.TryParse(jobInterest?.Element("CategoryId")?.Value, out var catId) && catId != Guid.Empty ? catId : null,
+                categoryIds = jobInterest?.Element("CategoryIds")?.Elements("CategoryId")
+                    .Select(e => Guid.TryParse(e.Value, out var categoryId) ? categoryId : Guid.Empty)
+                    .Where(id => id != Guid.Empty)
+                    .ToList() ?? new List<Guid>(),
                 roleIds = jobInterest?.Element("RoleIds")?.Elements("RoleId")
                     .Select(e => Guid.TryParse(e.Value, out var roleId) ? roleId : Guid.Empty)
                     .Where(id => id != Guid.Empty)
                     .ToList() ?? new List<Guid>(),
                 locationId = Guid.TryParse(jobInterest?.Element("LocationId")?.Value, out var locId) && locId != Guid.Empty ? locId : null,
+                mandatorySkills = jobInterest?.Element("MandatorySkills")?.Elements("SkillId")
+                    .Select(e => Guid.TryParse(e.Value, out var skillId) ? skillId : Guid.Empty)
+                    .Where(id => id != Guid.Empty)
+                    .ToList() ?? new List<Guid>(),
+                advantageSkills = jobInterest?.Element("AdvantageSkills")?.Elements("SkillId")
+                    .Select(e => Guid.TryParse(e.Value, out var skillId) ? skillId : Guid.Empty)
+                    .Where(id => id != Guid.Empty)
+                    .ToList() ?? new List<Guid>(),
                 skillIds = jobInterest?.Element("SkillIds")?.Elements("SkillId")
                     .Select(e => Guid.TryParse(e.Value, out var skillId) ? skillId : Guid.Empty)
                     .Where(id => id != Guid.Empty)

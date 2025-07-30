@@ -23,7 +23,23 @@ namespace Server.Controllers
         {
             try
             {
+                Console.WriteLine("🔥 FormController: SaveState called");
+                Console.WriteLine($"🔥 SessionId: {request?.sessionId}");
+                Console.WriteLine($"🔥 CurrentStep: {request?.currentStep}");
+                Console.WriteLine($"🔥 FormData type: {request?.formData?.GetType().Name}");
+                
+                if (request?.formData?.jobInterest != null)
+                {
+                    Console.WriteLine($"🔥 JobInterest - CategoryIds count: {request.formData.jobInterest.categoryIds?.Count ?? 0}");
+                    Console.WriteLine($"🔥 JobInterest - RoleIds count: {request.formData.jobInterest.roleIds?.Count ?? 0}");
+                    Console.WriteLine($"🔥 JobInterest - LocationId: {request.formData.jobInterest.locationId}");
+                    Console.WriteLine($"🔥 JobInterest - MandatorySkills count: {request.formData.jobInterest.mandatorySkills?.Count ?? 0}");
+                    Console.WriteLine($"🔥 JobInterest - AdvantageSkills count: {request.formData.jobInterest.advantageSkills?.Count ?? 0}");
+                }
+                
                 var result = await _formStateService.SaveFormStateAsync(request);
+                Console.WriteLine("🔥 FormStateService completed successfully");
+                
                 return Ok(new ApiResponse<FormStateDto> 
                 { 
                     success = true, 
@@ -33,6 +49,10 @@ namespace Server.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"🔥 ERROR in SaveState: {ex.Message}");
+                Console.WriteLine($"🔥 ERROR StackTrace: {ex.StackTrace}");
+                Console.WriteLine($"🔥 ERROR InnerException: {ex.InnerException?.Message}");
+                
                 return BadRequest(new ApiResponse<FormStateDto> 
                 { 
                     success = false, 

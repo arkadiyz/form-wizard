@@ -176,10 +176,18 @@ export const ConfirmationStep = forwardRef<ConfirmationStepRef, ConfirmationStep
                 </span>
               </div>
               <div className={styles.dataRow}>
-                <span className={styles.label}>Skills:</span>
+                <span className={styles.label}>Mandatory Skills:</span>
                 <span className={styles.value}>
-                  {formData.jobInterest.skills?.length > 0
-                    ? formData.jobInterest.skills.join(', ')
+                  {formData.jobInterest.mandatorySkills?.length > 0
+                    ? formData.jobInterest.mandatorySkills.join(', ')
+                    : 'Not selected'}
+                </span>
+              </div>
+              <div className={styles.dataRow}>
+                <span className={styles.label}>Advantage Skills:</span>
+                <span className={styles.value}>
+                  {formData.jobInterest.advantageSkills?.length > 0
+                    ? formData.jobInterest.advantageSkills.join(', ')
                     : 'Not selected'}
                 </span>
               </div>

@@ -14,7 +14,8 @@ export interface JobInterest {
   categoryIds: string[];
   roleIds: string[];
   locationId: string;
-  skills: string[];
+  mandatorySkills: string[];
+  advantageSkills: string[];
 }
 
 export interface NotificationSettings {
@@ -66,7 +67,8 @@ const initialFormData: FormData = {
     categoryIds: [],
     roleIds: [],
     locationId: '',
-    skills: [],
+    mandatorySkills: [],
+    advantageSkills: [],
   },
   notifications: {
     email: false,

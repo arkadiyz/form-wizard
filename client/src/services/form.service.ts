@@ -11,9 +11,11 @@ interface SaveFormStateRequest {
       email: string;
     };
     jobInterest: {
-      categoryId: string | null;
+      categoryIds: string[];
       roleIds: string[];
       locationId: string | null;
+      mandatorySkills: string[];
+      advantageSkills: string[];
       skillIds: string[];
       experienceLevel: string | null;
       salaryExpectation: number | null;
@@ -60,10 +62,12 @@ export const formService = {
             email: request.formData.personalInfo.email,
           },
           jobInterest: {
-            categoryId: request.formData.jobInterest.categoryId || null,
+            categoryIds: request.formData.jobInterest.categoryIds || [],
             roleIds: request.formData.jobInterest.roleIds || [],
             locationId: request.formData.jobInterest.locationId || null,
-            skillIds: request.formData.jobInterest.skills || [],
+            mandatorySkills: request.formData.jobInterest.mandatorySkills || [],
+            advantageSkills: request.formData.jobInterest.advantageSkills || [],
+            skillIds: [], // Keep empty for backward compatibility
             experienceLevel: null,
             salaryExpectation: null,
           },
@@ -79,6 +83,10 @@ export const formService = {
       };
 
       console.log('🟣 Converted request for server:', serverRequest);
+      console.log(
+        '🟣 JobInterest data being sent:',
+        JSON.stringify(serverRequest.formData.jobInterest, null, 2),
+      );
       console.log('🟣 Making POST request to /form/save-state...');
 
       // שלח ישירות בלי עטיפה נוספת

@@ -71,32 +71,71 @@ export const PersonalInfoSchema = z.object({
 export type PersonalInfo = z.infer<typeof PersonalInfoSchema>;
 
 // Enhanced Job Interest Schema with dynamic role limits
-export const JobInterestSchema = z.object({
-  categoryIds: z
-    .array(z.string())
-    .min(1, '🎯 Please select at least one job category that interests you!')
-    .max(3, 'Please select up to 3 job categories to focus your search'),
+export const JobInterestSchema = z
+  .object({
+    categoryIds: z
+      .array(z.string())
+      .min(1, '🎯 Please select at least one job category that interests you!')
+      .max(3, 'Please select up to 3 job categories to focus your search'),
 
-  roleIds: z
-    .array(z.string())
-    .min(1, '💼 Please select at least one job role!')
-    .refine((roles, ctx) => {
-      // Dynamic validation based on categories will be handled in component
-      // This is a fallback max limit
-      return roles.length <= 6; // Max possible: 2 categories × 3 roles each
-    }, 'Please select valid number of roles based on your categories'),
+    roleIds: z
+      .array(z.string())
+      .min(1, '💼 Please select at least one job role!')
+      .refine((roles, ctx) => {
+        // Dynamic validation based on categories will be handled in component
+        // This is a fallback max limit
+        return roles.length <= 6; // Max possible: 2 categories × 3 roles each
+      }, 'Please select valid number of roles based on your categories'),
 
-  locationId: z.string().min(1, "📍 Please tell us where you'd like to work!"),
+    locationId: z.string().min(1, "📍 Please tell us where you'd like to work!"),
 
-  skills: z
-    .array(z.string())
-    .min(1, '⚡ Please add at least one skill!')
-    .max(10, 'Please select up to 10 most relevant skills')
-    .refine((skills) => {
-      // Ensure no duplicate skills
-      return new Set(skills).size === skills.length;
-    }, 'Please remove duplicate skills'),
-});
+    // Separate mandatory and advantage skills
+    mandatorySkills: z
+      .array(z.string())
+      .min(1, '⚡ Please add at least one mandatory skill!')
+      .max(10, 'Please select up to 10 mandatory skills'),
+
+    advantageSkills: z
+      .array(z.string())
+      .max(10, 'Please select up to 10 advantage skills')
+      .default([]),
+  })
+  .refine(
+    (data) => {
+      // Ensure no skill appears in both mandatory and advantage
+      const mandatorySet = new Set(data.mandatorySkills);
+      const advantageSet = new Set(data.advantageSkills);
+      const intersection = [...mandatorySet].filter((skill) => advantageSet.has(skill));
+      return intersection.length === 0;
+    },
+    {
+      message: 'Skills cannot appear in both mandatory and advantage categories',
+      path: ['mandatorySkills'],
+    },
+  )
+  .refine(
+    (data) => {
+      // Ensure combined total doesn't exceed 10
+      const totalSkills = data.mandatorySkills.length + data.advantageSkills.length;
+      return totalSkills <= 10;
+    },
+    {
+      message: 'You can choose up to 10 mandatory and advantage skills total',
+      path: ['mandatorySkills'],
+    },
+  )
+  .refine(
+    (data) => {
+      // Ensure no duplicate skills within each array
+      const mandatoryUnique = new Set(data.mandatorySkills).size === data.mandatorySkills.length;
+      const advantageUnique = new Set(data.advantageSkills).size === data.advantageSkills.length;
+      return mandatoryUnique && advantageUnique;
+    },
+    {
+      message: 'Please remove duplicate skills',
+      path: ['mandatorySkills'],
+    },
+  );
 
 export type JobInterest = z.infer<typeof JobInterestSchema>;
 
