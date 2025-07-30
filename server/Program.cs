@@ -10,6 +10,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// הוסף Memory Cache עבור Reference Data
+builder.Services.AddMemoryCache();
+
 // הגדרת שירותים
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<FormService>();

@@ -2,15 +2,16 @@ namespace Server.Models.DTOs;
 
 public class RoleDto
 {
-    public int id { get; set; }
-    public int categoryId { get; set; }
+    public Guid id { get; set; }
+    public Guid categoryId { get; set; }
     public string name { get; set; } = string.Empty;
-    public string displayNameEn { get; set; } = string.Empty;
-    public string displayNameHe { get; set; } = string.Empty;
     public DateTime createdAt { get; set; }
 }
 
 public class RoleFilterRequest
 {
-    public int? categoryId { get; set; }
+    public Guid? categoryId { get; set; }
+    public string? experienceLevel { get; set; }
+    public decimal? minSalary { get; set; }
+    public decimal? maxSalary { get; set; }
 }

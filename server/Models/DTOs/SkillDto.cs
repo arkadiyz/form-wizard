@@ -4,20 +4,22 @@ namespace Server.Models.DTOs;
 
 public class SkillDto
 {
-    [Column("id")]
-    public Guid Id { get; set; }
-    
-    [Column("categoryId")]
-    public Guid CategoryId { get; set; }
-    
-    [Column("name")]
-    public string Name { get; set; } = string.Empty;
-    
-    [Column("createdAt")]
-    public DateTime CreatedAt { get; set; }
+    public Guid id { get; set; }
+    public Guid categoryId { get; set; }
+    public string name { get; set; } = string.Empty;
+    public DateTime createdAt { get; set; }
+}
+
+public class SkillCategoryDto
+{
+    public Guid id { get; set; }
+    public string name { get; set; } = string.Empty;
+    public DateTime createdAt { get; set; }
 }
 
 public class SkillFilterRequest
 {
-    public Guid? CategoryId { get; set; }
+    public Guid? categoryId { get; set; }
+    public string? searchTerm { get; set; }
+    public int? limit { get; set; }
 }

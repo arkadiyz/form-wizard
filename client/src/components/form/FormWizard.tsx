@@ -14,6 +14,7 @@ interface FormWizardProps {
   onBack?: () => void;
   isNextDisabled?: boolean;
   isLastStep?: boolean;
+  isLoading?: boolean;
   dir?: 'ltr' | 'rtl';
 }
 
@@ -27,6 +28,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
   onBack,
   isNextDisabled = false,
   isLastStep = false,
+  isLoading = false,
   dir = 'ltr',
 }) => {
   return (
@@ -97,10 +99,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
             {onNext && (
               <button
                 onClick={onNext}
-                disabled={isNextDisabled}
-                className={`${styles.nextButton} ${isNextDisabled ? styles.disabled : ''}`}
+                disabled={isNextDisabled || isLoading}
+                className={`${styles.nextButton} ${isNextDisabled || isLoading ? styles.disabled : ''}`}
               >
-                {isLastStep ? 'Submit' : 'Next'}
+                {isLoading ? 'Saving...' : isLastStep ? 'Submit' : 'Next'}
               </button>
             )}
           </div>

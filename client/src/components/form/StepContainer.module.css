@@ -31,10 +31,13 @@
 }
 
 .stepFooter {
-  margin-top: auto;
-  padding-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 2rem;
   border-top: 1px solid #e5e7eb;
-  flex-shrink: 0; /* לא מתכווץ */
+  margin-top: auto;
+  gap: 1rem;
 }
 
 .buttonGroup {
@@ -45,11 +48,55 @@
 
 .backButton {
   flex: 0 0 auto;
+  padding: 0.875rem 2rem;
+  background: #f9fafb;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.backButton:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.backButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .nextButton {
   flex: 0 0 auto;
+  padding: 0.875rem 2rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
   margin-left: auto;
+}
+
+.nextButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+.nextButton:disabled {
+  background: #d1d5db;
+  color: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 /* Mobile */
@@ -74,6 +121,17 @@
   .nextButton {
     margin-left: 0;
   }
+
+  .stepFooter {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .backButton,
+  .nextButton {
+    width: 100%;
+    margin: 0;
+  }
 }
 
 /* RTL Support */
@@ -84,4 +142,8 @@
 [dir='rtl'] .nextButton {
   margin-left: 0;
   margin-right: auto;
+}
+
+[dir='rtl'] .stepFooter {
+  direction: rtl;
 }

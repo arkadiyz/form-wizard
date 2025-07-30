@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useImperativeHandle, forwardRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
@@ -15,140 +15,247 @@ import styles from './PersonalInfoStep.module.css';
 
 interface PersonalInfoStepProps {
   locale?: string;
+  onNext?: () => void;
 }
 
-export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({ locale = 'en' }) => {
-  const { formData, updatePersonalInfo } = useFormStore();
-  const { t } = useTranslation(locale);
+// הוסף ref interface
+export interface PersonalInfoStepRef {
+  save: () => Promise<boolean>;
+  isValid: () => boolean;
+}
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    clearErrors,
-    watch,
-  } = useForm<PersonalInfo>({
-    resolver: zodResolver(PersonalInfoSchema),
-    defaultValues: formData.personalInfo,
-    mode: 'onBlur',
-  });
+export const PersonalInfoStep = forwardRef<PersonalInfoStepRef, PersonalInfoStepProps>(
+  ({ locale = 'en', onNext }, ref) => {
+    const {
+      formData,
+      updatePersonalInfo,
+      saveCurrentStep,
+      isSaving,
+      generateSessionId,
+      sessionId,
+    } = useFormStore();
+    const { t } = useTranslation(locale);
 
-  // Watch email field for delayed validation
-  const emailValue = watch('email');
+    const {
+      register,
+      handleSubmit,
+      formState: { errors },
+      setValue,
+      clearErrors,
+      watch,
+      reset,
+    } = useForm<PersonalInfo>({
+      resolver: zodResolver(PersonalInfoSchema),
+      defaultValues: formData.personalInfo,
+      mode: 'onBlur',
+    });
 
-  // Email uniqueness validation with debouncing
-  const {
-    isValidating: isEmailValidating,
-    error: emailUniquenessError,
-    isValid: isEmailUnique,
-  } = useDelayedValidation({
-    value: emailValue || '',
-    validator: checkEmailUniqueness,
-    delay: 500,
-  });
+    // עדכן את הטופס כשהנתונים ב-store משתנים (כשחוזרים לשלב)
+    React.useEffect(() => {
+      console.log('🔄 Syncing form with store data:', formData.personalInfo);
+      reset(formData.personalInfo);
+    }, [formData.personalInfo, reset]);
 
-  const onSubmit = (data: PersonalInfo) => {
-    updatePersonalInfo(data);
-  };
+    // Watch email field for delayed validation
+    const emailValue = watch('email');
 
-  // Enhanced phone input handler for Israeli phone numbers
-  const handlePhoneInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+    // Email uniqueness validation with debouncing
+    const {
+      isValidating: isEmailValidating,
+      error: emailUniquenessError,
+      isValid: isEmailUnique,
+    } = useDelayedValidation({
+      value: emailValue || '',
+      validator: checkEmailUniqueness,
+      delay: 500,
+    });
 
-    // Only allow numbers and dash
-    const cleaned = value.replace(/[^0-9-]/g, '');
+    // פונקציה לבדיקת תקינות הטופס
+    const isFormValid = (): boolean => {
+      const currentData = watch();
+      const hasNoErrors = Object.keys(errors).length === 0;
+      const hasAllRequiredFields = Boolean(
+        currentData.firstName && currentData.lastName && currentData.phone && currentData.email,
+      );
+      const emailIsValid = Boolean(isEmailUnique === true && !emailUniquenessError);
 
-    // Limit to 10 digits (excluding dash)
-    const digitsOnly = cleaned.replace(/-/g, '');
+      return hasNoErrors && hasAllRequiredFields && emailIsValid;
+    };
 
-    // Auto-format with dash after 3 digits (Israeli format)
-    let formatted = cleaned;
-    if (digitsOnly.length >= 3 && !cleaned.includes('-')) {
-      formatted = digitsOnly.slice(0, 3) + '-' + digitsOnly.slice(3, 10);
-    }
+    // פונקציה ציבורית לשמירה
+    const saveData = async (): Promise<boolean> => {
+      console.log('🟠 PersonalInfoStep: saveData called');
+      const currentData = watch();
+      console.log('🟠 Current form data:', currentData);
 
-    // Max 10 digits total
-    if (digitsOnly.length <= 10) {
-      setValue('phone', formatted);
-      clearErrors('phone');
-    }
-  };
+      try {
+        // עדכן את הנתונים ב-store
+        console.log('🟠 Updating store...');
+        updatePersonalInfo(currentData);
 
-  // Update store only on blur (when user finishes editing)
-  const handleBlur = (field: keyof PersonalInfo, value: string) => {
-    updatePersonalInfo({ [field]: value });
-  };
+        // יצור session ID אם לא קיים
+        if (!sessionId) {
+          console.log('🟠 No sessionId, generating...');
+          generateSessionId();
+        } else {
+          console.log('🟠 Using existing sessionId:', sessionId);
+        }
 
-  // Determine final email error (form validation or uniqueness)
-  const finalEmailError = errors.email?.message || emailUniquenessError || undefined;
+        // שמור לשרת
+        console.log('🟠 Calling saveCurrentStep...');
+        const success = await saveCurrentStep();
+        console.log('🟠 saveCurrentStep result:', success);
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className={styles.stepContainer}
-    >
-      <StepHeader
-        title="Personal Information"
-        subtitle="Please provide your basic personal information to get started."
-      />
+        if (success) {
+          console.log('✅ Personal info saved successfully');
+          return true;
+        } else {
+          console.error('❌ Failed to save personal info');
+          return false;
+        }
+      } catch (error) {
+        console.error('❌ Error saving personal info:', error);
+        return false;
+      }
+    };
 
-      <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
-        <FormGrid columns={2} gap="lg">
-          <Input
-            {...register('firstName')}
-            label={t('fields.firstName')}
-            placeholder="John"
-            error={errors.firstName?.message}
-            isRequired
-            dir={locale === 'he' ? 'rtl' : 'ltr'}
-            hint={locale === 'en' ? 'English letters only' : undefined}
-            onBlur={(e) => handleBlur('firstName', e.target.value)}
-          />
+    // חשוף את הפונקציות לקומפוננטה האב
+    useImperativeHandle(ref, () => ({
+      save: saveData,
+      isValid: isFormValid,
+    }));
 
-          <Input
-            {...register('lastName')}
-            label={t('fields.lastName')}
-            placeholder="Doe"
-            error={errors.lastName?.message}
-            isRequired
-            dir={locale === 'he' ? 'rtl' : 'ltr'}
-            hint={locale === 'en' ? 'English letters only' : undefined}
-            onBlur={(e) => handleBlur('lastName', e.target.value)}
-          />
+    const onSubmit = async (data: PersonalInfo) => {
+      // עדכון הנתונים ב-store
+      updatePersonalInfo(data);
 
-          <Input
-            {...register('phone')}
-            label={t('fields.phone')}
-            placeholder="050-1234567"
-            error={errors.phone?.message}
-            isRequired
-            type="tel"
-            inputMode="numeric"
-            pattern="[0-9-]*"
-            maxLength={11}
-            onChange={handlePhoneInput}
-            onBlur={(e) => handleBlur('phone', e.target.value)}
-            dir={locale === 'he' ? 'rtl' : 'ltr'}
-            hint="Israeli mobile format: 050-1234567"
-          />
+      // יצירת session ID אם לא קיים
+      if (!sessionId) {
+        generateSessionId();
+      }
 
-          <Input
-            {...register('email')}
-            label={t('fields.email')}
-            placeholder="john@example.com"
-            error={finalEmailError}
-            isRequired
-            isLoading={isEmailValidating}
-            type="email"
-            dir={locale === 'he' ? 'rtl' : 'ltr'}
-            onBlur={(e) => handleBlur('email', e.target.value)}
-            hint={isEmailUnique === true ? '✓ Email is available' : undefined}
-          />
-        </FormGrid>
-      </form>
-    </motion.div>
-  );
-};
+      // שמירה לשרת
+      try {
+        const saveSuccess = await saveCurrentStep();
+
+        if (saveSuccess) {
+          console.log('✅ Personal info saved successfully');
+          // מעבר לשלב הבא
+          onNext?.();
+        } else {
+          console.error('❌ Failed to save personal info');
+          // אפשר להציג הודעת שגיאה למשתמש
+          alert('Failed to save data. Please try again.');
+        }
+      } catch (error) {
+        console.error('❌ Error saving personal info:', error);
+        alert('An error occurred while saving. Please try again.');
+      }
+    };
+
+    // Enhanced phone input handler for Israeli phone numbers
+    const handlePhoneInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+
+      // Only allow numbers and dash
+      const cleaned = value.replace(/[^0-9-]/g, '');
+
+      // Limit to 10 digits (excluding dash)
+      const digitsOnly = cleaned.replace(/-/g, '');
+
+      // Auto-format with dash after 3 digits (Israeli format)
+      let formatted = cleaned;
+      if (digitsOnly.length >= 3 && !cleaned.includes('-')) {
+        formatted = digitsOnly.slice(0, 3) + '-' + digitsOnly.slice(3, 10);
+      }
+
+      // Max 10 digits total
+      if (digitsOnly.length <= 10) {
+        setValue('phone', formatted);
+        clearErrors('phone');
+      }
+    };
+
+    // Update store only on blur (when user finishes editing)
+    const handleBlur = (field: keyof PersonalInfo, value: string) => {
+      updatePersonalInfo({ [field]: value });
+    };
+
+    // Determine final email error (form validation or uniqueness)
+    const finalEmailError = errors.email?.message || emailUniquenessError || undefined;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className={styles.stepContainer}
+      >
+        <StepHeader
+          title="Personal Information"
+          subtitle="Please provide your basic personal information to get started."
+        />
+
+        <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
+          <FormGrid columns={2} gap="lg">
+            <Input
+              {...register('firstName')}
+              label={t('fields.firstName')}
+              placeholder="John"
+              error={errors.firstName?.message}
+              isRequired
+              dir={locale === 'he' ? 'rtl' : 'ltr'}
+              hint={locale === 'en' ? 'English letters only' : undefined}
+              onBlur={(e) => handleBlur('firstName', e.target.value)}
+            />
+
+            <Input
+              {...register('lastName')}
+              label={t('fields.lastName')}
+              placeholder="Doe"
+              error={errors.lastName?.message}
+              isRequired
+              dir={locale === 'he' ? 'rtl' : 'ltr'}
+              hint={locale === 'en' ? 'English letters only' : undefined}
+              onBlur={(e) => handleBlur('lastName', e.target.value)}
+            />
+
+            <Input
+              {...register('phone')}
+              label={t('fields.phone')}
+              placeholder="050-1234567"
+              error={errors.phone?.message}
+              isRequired
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9-]*"
+              maxLength={11}
+              onChange={handlePhoneInput}
+              onBlur={(e) => handleBlur('phone', e.target.value)}
+              dir={locale === 'he' ? 'rtl' : 'ltr'}
+              hint="Israeli mobile format: 050-1234567"
+            />
+
+            <Input
+              {...register('email')}
+              label={t('fields.email')}
+              placeholder="john@example.com"
+              error={finalEmailError}
+              isRequired
+              isLoading={isEmailValidating}
+              type="email"
+              dir={locale === 'he' ? 'rtl' : 'ltr'}
+              onBlur={(e) => handleBlur('email', e.target.value)}
+              hint={isEmailUnique === true ? '✓ Email is available' : undefined}
+            />
+          </FormGrid>
+
+          {/* כפתור Next עם מצב טעינה */}
+          <div className={styles.buttonContainer}></div>
+        </form>
+      </motion.div>
+    );
+  },
+);
+
+PersonalInfoStep.displayName = 'PersonalInfoStep';

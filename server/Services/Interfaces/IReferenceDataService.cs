@@ -4,27 +4,29 @@ namespace Server.Services.Interfaces;
 
 public interface IReferenceDataService
 {
+    // Task<bool> isEmailAvailableAsync(string email);
+
     // Categories
-    Task<List<CategoryDto>> getCategoriesAsync(bool includeSubCategories = true);
+    Task<List<CategoryDto>> getCategoriesAsync();
     Task<CategoryDto?> getCategoryByIdAsync(Guid categoryId);
 
     // Roles
     Task<List<RoleDto>> getRolesAsync(RoleFilterRequest? filter = null);
-    Task<List<RoleDto>> getRolesByCategoryAsync(Guid categoryId, bool includeSkills = false);
-    Task<RoleDto?> getRoleByIdAsync(Guid roleId, bool includeSkills = false);
+    Task<List<RoleDto>> getRolesByCategoryAsync(Guid categoryId);
+    Task<RoleDto?> getRoleByIdAsync(Guid roleId);
 
     // Locations
     Task<List<LocationDto>> getLocationsAsync(LocationFilterRequest? filter = null);
-    Task<List<LocationDto>> getLocationsByTypeAsync(string locationType);
-    Task<List<LocationDto>> getLocationsByParentAsync(Guid parentLocationId);
-    Task<LocationDto?> getLocationByIdAsync(Guid locationId, bool includeSubLocations = false);
+    Task<LocationDto?> getLocationByIdAsync(Guid locationId);
 
     // Skills
     Task<List<SkillDto>> getSkillsAsync(SkillFilterRequest? filter = null);
     Task<List<SkillDto>> getSkillsByCategoryAsync(Guid categoryId);
-    Task<List<SkillDto>> getPopularSkillsAsync(int limit = 20);
-    Task<List<SkillDto>> searchSkillsAsync(string searchTerm, int limit = 10);
     Task<SkillDto?> getSkillByIdAsync(Guid skillId);
+
+    // Skills Categories
+    Task<List<SkillsCategoryDto>> getSkillsCategoriesAsync();
+    Task<SkillsCategoryDto?> getSkillsCategoryByIdAsync(Guid categoryId);
 
     // Combined
     Task<ReferenceDataResponse> getAllReferenceDataAsync(ReferenceDataRequest request);
@@ -32,4 +34,5 @@ public interface IReferenceDataService
     // Cache management
     Task refreshCacheAsync();
     void clearCache();
+
 }

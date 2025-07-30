@@ -63,9 +63,9 @@ Create comprehensive Reference Data APIs to replace mock data and provide real b
 
 # ⚡ Phase 2 - Detailed Task Breakdown
 
-## 🔴 Step 2A: Database Schema (15 דקות)
+## 🔴 Step 2A: Database Schema (20 דקות)
 
-### 📋 Task 2A.1: Create Categories Table
+### 📋 Task 2A.1: Create Users Table
 
 **Time:** 4 דקות
 
@@ -73,113 +73,105 @@ Create comprehensive Reference Data APIs to replace mock data and provide real b
 -- Execute in SQL Server Management Studio
 USE form_wizard_db;
 
-CREATE TABLE Categories (
+CREATE TABLE Users (
     id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    name NVARCHAR(100) NOT NULL,
-    displayNameEn NVARCHAR(100) NOT NULL,
-    displayNameHe NVARCHAR(100) NOT NULL,
-    description NVARCHAR(500),
-    parentCategoryId UNIQUEIDENTIFIER NULL,
-    sortOrder INT DEFAULT 0,
-    isActive BIT DEFAULT 1,
+    firstName NVARCHAR(50) NOT NULL,
+    lastName NVARCHAR(50) NOT NULL,
+    email NVARCHAR(100) NOT NULL UNIQUE,
     createdAt DATETIME2 DEFAULT GETUTCDATE(),
-    FOREIGN KEY (parentCategoryId) REFERENCES Categories(id)
+    updatedAt DATETIME2 DEFAULT GETUTCDATE()
 );
 
-CREATE INDEX IX_Categories_ParentId ON Categories(parentCategoryId);
-CREATE INDEX IX_Categories_IsActive ON Categories(isActive);
+CREATE INDEX IX_Users_Email ON Users(email);
 ```
 
-### 📋 Task 2A.2: Create Roles Table
+### 📋 Task 2A.2: Create SkillsCategories Table
 
 **Time:** 3 דקות
 
 ```sql
-CREATE TABLE Roles (
-    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    categoryId UNIQUEIDENTIFIER NOT NULL,
-    name NVARCHAR(100) NOT NULL,
-    displayNameEn NVARCHAR(100) NOT NULL,
-    displayNameHe NVARCHAR(100) NOT NULL,
-    description NVARCHAR(500),
-    requiredSkills NVARCHAR(MAX), -- JSON array of skill IDs
-    salaryRangeMin DECIMAL(10,2),
-    salaryRangeMax DECIMAL(10,2),
-    experienceLevel NVARCHAR(50), -- entry, mid, senior, expert
-    sortOrder INT DEFAULT 0,
-    isActive BIT DEFAULT 1,
-    createdAt DATETIME2 DEFAULT GETUTCDATE(),
-    FOREIGN KEY (categoryId) REFERENCES Categories(id)
-);
-
-CREATE INDEX IX_Roles_CategoryId ON Roles(categoryId);
-CREATE INDEX IX_Roles_IsActive ON Roles(isActive);
-CREATE INDEX IX_Roles_ExperienceLevel ON Roles(experienceLevel);
-```
-
-### 📋 Task 2A.3: Create Locations Table
-
-**Time:** 3 דקות
-
-```sql
-CREATE TABLE Locations (
+CREATE TABLE SkillsCategories (
     id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     name NVARCHAR(100) NOT NULL,
-    displayNameEn NVARCHAR(100) NOT NULL,
-    displayNameHe NVARCHAR(100) NOT NULL,
-    locationType NVARCHAR(20) NOT NULL, -- country, state, city, district
-    parentLocationId UNIQUEIDENTIFIER NULL,
-    countryCode NVARCHAR(3), -- ISO country code
-    coordinates NVARCHAR(50), -- lat,lng for mapping
-    timezone NVARCHAR(50),
-    sortOrder INT DEFAULT 0,
-    isActive BIT DEFAULT 1,
-    createdAt DATETIME2 DEFAULT GETUTCDATE(),
-    FOREIGN KEY (parentLocationId) REFERENCES Locations(id)
+    createdAt DATETIME2 DEFAULT GETUTCDATE()
 );
-
-CREATE INDEX IX_Locations_ParentId ON Locations(parentLocationId);
-CREATE INDEX IX_Locations_Type ON Locations(locationType);
-CREATE INDEX IX_Locations_IsActive ON Locations(isActive);
 ```
 
-### 📋 Task 2A.4: Create Skills Table
+### 📋 Task 2A.3: Create Skills Table
 
 **Time:** 3 דקות
 
 ```sql
 CREATE TABLE Skills (
     id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    categoryId UNIQUEIDENTIFIER NULL,
-    name NVARCHAR(100) NOT NULL,
-    displayNameEn NVARCHAR(100) NOT NULL,
-    displayNameHe NVARCHAR(100) NOT NULL,
-    description NVARCHAR(500),
-    skillType NVARCHAR(30), -- technical, soft, language, certification
-    proficiencyLevels NVARCHAR(200), -- JSON: ["beginner","intermediate","advanced","expert"]
-    isPopular BIT DEFAULT 0,
-    sortOrder INT DEFAULT 0,
-    isActive BIT DEFAULT 1,
+    categoryId UNIQUEIDENTIFIER NOT NULL,
+    name NVARCHAR(200) NOT NULL,
     createdAt DATETIME2 DEFAULT GETUTCDATE(),
-    FOREIGN KEY (categoryId) REFERENCES Categories(id)
+    FOREIGN KEY (categoryId) REFERENCES SkillsCategories(id)
 );
 
 CREATE INDEX IX_Skills_CategoryId ON Skills(categoryId);
-CREATE INDEX IX_Skills_Type ON Skills(skillType);
-CREATE INDEX IX_Skills_IsPopular ON Skills(isPopular);
-CREATE INDEX IX_Skills_IsActive ON Skills(isActive);
 ```
 
-### 📋 Task 2A.5: Verify Tables
+### 📋 Task 2A.4: Create Locations Table
+
+**Time:** 3 דקות
+
+```sql
+CREATE TABLE Locations (
+    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    name NVARCHAR(100) NOT NULL UNIQUE,
+    createdAt DATETIME2 DEFAULT GETUTCDATE()
+);
+```
+
+### 📋 Task 2A.5: Create Categories Table
+
+**Time:** 3 דקות
+
+```sql
+CREATE TABLE Categories (
+    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    name NVARCHAR(100) NOT NULL UNIQUE,
+    createdAt DATETIME2 DEFAULT GETUTCDATE()
+);
+```
+
+### 📋 Task 2A.6: Create Roles Table
 
 **Time:** 2 דקות
 
 ```sql
--- Verify all tables were created
-SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_NAME IN ('Categories', 'Roles', 'Locations', 'Skills')
-ORDER BY TABLE_NAME, ORDINAL_POSITION;
+CREATE TABLE Roles (
+    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    categoryId UNIQUEIDENTIFIER NOT NULL,
+    name NVARCHAR(100) NOT NULL,
+    createdAt DATETIME2 DEFAULT GETUTCDATE(),
+    FOREIGN KEY (categoryId) REFERENCES Categories(id)
+);
+
+CREATE INDEX IX_Roles_CategoryId ON Roles(categoryId);
+```
+
+### 📋 Task 2A.7: Create UserNotifications Table
+
+**Time:** 2 דקות
+
+```sql
+CREATE TABLE UserNotifications (
+    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    userId UNIQUEIDENTIFIER NOT NULL,
+    isEmailEnabled BIT DEFAULT 1,
+    isPhoneEnabled BIT DEFAULT 0,
+    isCallEnabled BIT DEFAULT 0,
+    isSmsEnabled BIT DEFAULT 0,
+    isWhatsappEnabled BIT DEFAULT 0,
+    createdAt DATETIME2 DEFAULT GETUTCDATE(),
+    updatedAt DATETIME2 DEFAULT GETUTCDATE(),
+    FOREIGN KEY (userId) REFERENCES Users(id)
+);
+
+CREATE INDEX IX_UserNotifications_UserId ON UserNotifications(userId);
 ```
 
 ---

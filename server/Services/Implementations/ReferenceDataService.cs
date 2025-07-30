@@ -1,7 +1,6 @@
 using Dapper;
 using Microsoft.Extensions.Caching.Memory;
-using System.Data.SqlClient;
-using System.Text.Json;
+using Microsoft.Data.SqlClient;
 using Server.Models.DTOs;
 using Server.Services.Interfaces;
 
@@ -18,6 +17,7 @@ public class ReferenceDataService : IReferenceDataService
     private const string RolesCacheKey = "roles";
     private const string LocationsCacheKey = "locations";
     private const string SkillsCacheKey = "skills";
+    private const string SkillsCategoriesCacheKey = "skillsCategories";
 
     public ReferenceDataService(
         IConfiguration configuration,
@@ -30,289 +30,201 @@ public class ReferenceDataService : IReferenceDataService
         _logger = logger;
     }
 
-    public async Task<List<CategoryDto>> GetCategoriesAsync(bool includeSubCategories = true)
+    // Categories
+    public async Task<List<CategoryDto>> getCategoriesAsync()
     {
         return await _cache.GetOrCreateAsync(CategoriesCacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(CacheExpirationMinutes);
 
             using var connection = new SqlConnection(_connectionString);
-
-            const string sql = @"
-                SELECT c.id, c.name, c.displayNameEn, c.displayNameHe, c.description,
-                       c.parentCategoryId, c.sortOrder, c.isActive,
-                       COUNT(r.id) as RoleCount
-                FROM Categories c
-                LEFT JOIN Roles r ON r.categoryId = c.id AND r.isActive = 1
-                WHERE c.isActive = 1
-                GROUP BY c.id, c.name, c.displayNameEn, c.displayNameHe, c.description,
-                         c.parentCategoryId, c.sortOrder, c.isActive
-                ORDER BY c.sortOrder, c.displayNameEn";
+            const string sql = "SELECT id, name, createdAt FROM Categories ORDER BY name";
 
             var categories = await connection.QueryAsync<CategoryDto>(sql);
-            var categoryList = categories.ToList();
-
-            if (includeSubCategories)
-            {
-                // Build hierarchy
-                var categoryMap = categoryList.ToDictionary(c => c.Id);
-                var rootCategories = new List<CategoryDto>();
-
-                foreach (var category in categoryList)
-                {
-                    if (category.ParentCategoryId == null)
-                    {
-                        rootCategories.Add(category);
-                    }
-                    else if (categoryMap.TryGetValue(category.ParentCategoryId.Value, out var parent))
-                    {
-                        parent.SubCategories.Add(category);
-                    }
-                }
-
-                return rootCategories;
-            }
-
-            return categoryList;
+            return categories.ToList();
         }) ?? new List<CategoryDto>();
     }
 
-    public async Task<CategoryDto?> GetCategoryByIdAsync(Guid categoryId)
+    public async Task<CategoryDto?> getCategoryByIdAsync(Guid categoryId)
     {
-        var categories = await GetCategoriesAsync(false);
-        return categories.FirstOrDefault(c => c.Id == categoryId);
+        var categories = await getCategoriesAsync();
+        return categories.FirstOrDefault(c => c.id == categoryId);
     }
 
-    public async Task<List<RoleDto>> GetRolesAsync(RoleFilterRequest? filter = null)
+    // Roles
+    public async Task<List<RoleDto>> getRolesAsync(RoleFilterRequest? filter = null)
     {
-        var cacheKey = $"{RolesCacheKey}_{filter?.CategoryId}_{filter?.ExperienceLevel}";
+        var cacheKey = $"{RolesCacheKey}_{filter?.categoryId}";
 
         return await _cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(CacheExpirationMinutes);
 
             using var connection = new SqlConnection(_connectionString);
-
-            var sql = @"
-                SELECT r.id, r.categoryId, c.displayNameEn as CategoryName,
-                       r.name, r.displayNameEn, r.displayNameHe, r.description,
-                       r.requiredSkills, r.salaryRangeMin, r.salaryRangeMax,
-                       r.experienceLevel, r.sortOrder, r.isActive
-                FROM Roles r
-                INNER JOIN Categories c ON c.id = r.categoryId
-                WHERE r.isActive = 1 AND c.isActive = 1";
-
+            var sql = "SELECT id, categoryId, name, createdAt FROM Roles WHERE 1=1";
             var parameters = new DynamicParameters();
 
-            if (filter?.CategoryId.HasValue == true)
+            if (filter?.categoryId.HasValue == true)
             {
-                sql += " AND r.categoryId = @CategoryId";
-                parameters.Add("CategoryId", filter.CategoryId.Value);
+                sql += " AND categoryId = @categoryId";
+                parameters.Add("categoryId", filter.categoryId.Value);
             }
 
-            if (!string.IsNullOrEmpty(filter?.ExperienceLevel))
-            {
-                sql += " AND r.experienceLevel = @ExperienceLevel";
-                parameters.Add("ExperienceLevel", filter.ExperienceLevel);
-            }
-
-            if (filter?.MinSalary.HasValue == true)
-            {
-                sql += " AND r.salaryRangeMin >= @MinSalary";
-                parameters.Add("MinSalary", filter.MinSalary.Value);
-            }
-
-            if (filter?.MaxSalary.HasValue == true)
-            {
-                sql += " AND r.salaryRangeMax <= @MaxSalary";
-                parameters.Add("MaxSalary", filter.MaxSalary.Value);
-            }
-
-            sql += " ORDER BY r.sortOrder, r.displayNameEn";
+            sql += " ORDER BY name";
 
             var roles = await connection.QueryAsync<RoleDto>(sql, parameters);
-            var rolesList = roles.ToList();
-
-            // Parse required skills JSON
-            foreach (var role in rolesList)
-            {
-                if (!string.IsNullOrEmpty(role.RequiredSkills?.ToString()))
-                {
-                    try
-                    {
-                        var skillIds = JsonSerializer.Deserialize<List<Guid>>(role.RequiredSkills.ToString() ?? "[]");
-                        role.RequiredSkillIds = skillIds ?? new List<Guid>();
-                    }
-                    catch
-                    {
-                        role.RequiredSkillIds = new List<Guid>();
-                    }
-                }
-            }
-
-            return rolesList;
+            return roles.ToList();
         }) ?? new List<RoleDto>();
     }
 
-    public async Task<List<RoleDto>> GetRolesByCategoryAsync(Guid categoryId, bool includeSkills = false)
+    public async Task<List<RoleDto>> getRolesByCategoryAsync(Guid categoryId)
     {
-        var filter = new RoleFilterRequest { CategoryId = categoryId, IncludeSkills = includeSkills };
-        return await GetRolesAsync(filter);
+        var filter = new RoleFilterRequest { categoryId = categoryId };
+        return await getRolesAsync(filter);
     }
 
-    public async Task<RoleDto?> GetRoleByIdAsync(Guid roleId, bool includeSkills = false)
+    public async Task<RoleDto?> getRoleByIdAsync(Guid roleId)
     {
-        var roles = await GetRolesAsync();
-        return roles.FirstOrDefault(r => r.Id == roleId);
+        var roles = await getRolesAsync();
+        return roles.FirstOrDefault(r => r.id == roleId);
     }
 
-    public async Task<List<LocationDto>> GetLocationsAsync(LocationFilterRequest? filter = null)
+    // Locations
+    public async Task<List<LocationDto>> getLocationsAsync(LocationFilterRequest? filter = null)
     {
         return await _cache.GetOrCreateAsync(LocationsCacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(CacheExpirationMinutes);
 
             using var connection = new SqlConnection(_connectionString);
-
-            const string sql = @"
-                SELECT l.id, l.name, l.displayNameEn, l.displayNameHe,
-                       l.locationType, l.parentLocationId, l.countryCode,
-                       l.coordinates, l.timezone, l.sortOrder, l.isActive,
-                       p.displayNameEn as ParentLocationName
-                FROM Locations l
-                LEFT JOIN Locations p ON p.id = l.parentLocationId
-                WHERE l.isActive = 1
-                ORDER BY l.sortOrder, l.displayNameEn";
+            const string sql = "SELECT id, name, createdAt FROM Locations ORDER BY name";
 
             var locations = await connection.QueryAsync<LocationDto>(sql);
             return locations.ToList();
         }) ?? new List<LocationDto>();
     }
 
-    public async Task<List<LocationDto>> GetLocationsByTypeAsync(string locationType)
+    public async Task<LocationDto?> getLocationByIdAsync(Guid locationId)
     {
-        var locations = await GetLocationsAsync();
-        return locations.Where(l => l.LocationType.Equals(locationType, StringComparison.OrdinalIgnoreCase)).ToList();
+        var locations = await getLocationsAsync();
+        return locations.FirstOrDefault(l => l.id == locationId);
     }
 
-    public async Task<List<LocationDto>> GetLocationsByParentAsync(Guid parentLocationId)
+    // Skills
+    public async Task<List<SkillDto>> getSkillsAsync(SkillFilterRequest? filter = null)
     {
-        var locations = await GetLocationsAsync();
-        return locations.Where(l => l.ParentLocationId == parentLocationId).ToList();
-    }
+        var cacheKey = $"{SkillsCacheKey}_{filter?.categoryId}_{filter?.searchTerm}";
 
-    public async Task<LocationDto?> GetLocationByIdAsync(Guid locationId, bool includeSubLocations = false)
-    {
-        var locations = await GetLocationsAsync();
-        return locations.FirstOrDefault(l => l.Id == locationId);
-    }
-
-    public async Task<List<SkillDto>> GetSkillsAsync(SkillFilterRequest? filter = null)
-    {
-        return await _cache.GetOrCreateAsync(SkillsCacheKey, async entry =>
+        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(CacheExpirationMinutes);
 
             using var connection = new SqlConnection(_connectionString);
+            var sql = "SELECT id, categoryId, name, createdAt FROM Skills WHERE 1=1";
+            var parameters = new DynamicParameters();
 
-            const string sql = @"
-                SELECT s.id, s.categoryId, c.displayNameEn as CategoryName,
-                       s.name, s.displayNameEn, s.displayNameHe, s.description,
-                       s.skillType, s.proficiencyLevels, s.isPopular,
-                       s.sortOrder, s.isActive
-                FROM Skills s
-                LEFT JOIN Categories c ON c.id = s.categoryId
-                WHERE s.isActive = 1
-                ORDER BY s.isPopular DESC, s.sortOrder, s.displayNameEn";
-
-            var skills = await connection.QueryAsync<SkillDto>(sql);
-            var skillsList = skills.ToList();
-
-            // Parse proficiency levels JSON
-            foreach (var skill in skillsList)
+            if (filter?.categoryId.HasValue == true)
             {
-                if (!string.IsNullOrEmpty(skill.ProficiencyLevels?.ToString()))
-                {
-                    try
-                    {
-                        var levels = JsonSerializer.Deserialize<List<string>>(skill.ProficiencyLevels.ToString() ?? "[]");
-                        skill.ProficiencyLevels = levels ?? new List<string>();
-                    }
-                    catch
-                    {
-                        skill.ProficiencyLevels = new List<string> { "beginner", "intermediate", "advanced" };
-                    }
-                }
+                sql += " AND categoryId = @categoryId";
+                parameters.Add("categoryId", filter.categoryId.Value);
             }
 
-            return skillsList;
+            if (!string.IsNullOrEmpty(filter?.searchTerm))
+            {
+                sql += " AND name LIKE @searchTerm";
+                parameters.Add("searchTerm", $"%{filter.searchTerm}%");
+            }
+
+            sql += " ORDER BY name";
+
+            if (filter?.limit.HasValue == true)
+            {
+                sql = $"SELECT TOP ({filter.limit.Value}) * FROM ({sql}) AS LimitedResults";
+            }
+
+            var skills = await connection.QueryAsync<SkillDto>(sql, parameters);
+            return skills.ToList();
         }) ?? new List<SkillDto>();
     }
 
-    public async Task<List<SkillDto>> GetSkillsByCategoryAsync(Guid categoryId)
+    public async Task<List<SkillDto>> getSkillsByCategoryAsync(Guid categoryId)
     {
-        var skills = await GetSkillsAsync();
-        return skills.Where(s => s.CategoryId == categoryId).ToList();
+        var filter = new SkillFilterRequest { categoryId = categoryId };
+        return await getSkillsAsync(filter);
     }
 
-    public async Task<List<SkillDto>> GetPopularSkillsAsync(int limit = 20)
+    public async Task<SkillDto?> getSkillByIdAsync(Guid skillId)
     {
-        var skills = await GetSkillsAsync();
-        return skills.Where(s => s.IsPopular).Take(limit).ToList();
+        var skills = await getSkillsAsync();
+        return skills.FirstOrDefault(s => s.id == skillId);
     }
 
-    public async Task<List<SkillDto>> SearchSkillsAsync(string searchTerm, int limit = 10)
+    // Skills Categories
+    public async Task<List<SkillsCategoryDto>> getSkillsCategoriesAsync()
     {
-        var skills = await GetSkillsAsync();
-        return skills
-            .Where(s => s.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                       s.DisplayNameEn.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
-            .Take(limit)
-            .ToList();
+        return await _cache.GetOrCreateAsync(SkillsCategoriesCacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(CacheExpirationMinutes);
+
+            using var connection = new SqlConnection(_connectionString);
+            const string sql = "SELECT id, name, createdAt FROM SkillsCategories ORDER BY name";
+
+            var skillsCategories = await connection.QueryAsync<SkillsCategoryDto>(sql);
+            return skillsCategories.ToList();
+        }) ?? new List<SkillsCategoryDto>();
     }
 
-    public async Task<SkillDto?> GetSkillByIdAsync(Guid skillId)
+    public async Task<SkillsCategoryDto?> getSkillsCategoryByIdAsync(Guid categoryId)
     {
-        var skills = await GetSkillsAsync();
-        return skills.FirstOrDefault(s => s.Id == skillId);
+        var skillsCategories = await getSkillsCategoriesAsync();
+        return skillsCategories.FirstOrDefault(sc => sc.id == categoryId);
     }
 
-    public async Task<ReferenceDataResponse> GetAllReferenceDataAsync(ReferenceDataRequest request)
+    // Combined
+    public async Task<ReferenceDataResponse> getAllReferenceDataAsync(ReferenceDataRequest request)
     {
         var response = new ReferenceDataResponse();
 
-        if (request.IncludeCategories)
-            response.Categories = await GetCategoriesAsync(request.IncludeSubItems);
+        if (request.includeCategories)
+            response.categories = await getCategoriesAsync();
 
-        if (request.IncludeRoles)
-            response.Roles = await GetRolesAsync();
+        if (request.includeRoles)
+            response.roles = await getRolesAsync();
 
-        if (request.IncludeLocations)
-            response.Locations = await GetLocationsAsync();
+        if (request.includeLocations)
+            response.locations = await getLocationsAsync();
 
-        if (request.IncludeSkills)
-            response.Skills = await GetSkillsAsync();
+        if (request.includeSkills)
+            response.skills = await getSkillsAsync();
+
+        if (request.includeSkillsCategories)
+            response.skillsCategories = await getSkillsCategoriesAsync();
 
         return response;
     }
 
-    public async Task RefreshCacheAsync()
+    // Cache management
+    public async Task refreshCacheAsync()
     {
-        ClearCache();
+        clearCache();
         // Pre-warm cache
         await Task.WhenAll(
-            GetCategoriesAsync(),
-            GetRolesAsync(),
-            GetLocationsAsync(),
-            GetSkillsAsync()
+            getCategoriesAsync(),
+            getRolesAsync(),
+            getLocationsAsync(),
+            getSkillsAsync(),
+            getSkillsCategoriesAsync()
         );
     }
 
-    public void ClearCache()
+    public void clearCache()
     {
         _cache.Remove(CategoriesCacheKey);
         _cache.Remove(RolesCacheKey);
         _cache.Remove(LocationsCacheKey);
         _cache.Remove(SkillsCacheKey);
+        _cache.Remove(SkillsCategoriesCacheKey);
     }
+
+
 }

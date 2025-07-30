@@ -35,13 +35,13 @@ public class FormStateService : IFormStateService
 
         return new FormStateDto
         {
-            Id = result.id,
-            SessionId = result.sessionId,
-            FormData = formData,
-            CurrentStep = result.currentStep,
-            IsCompleted = result.isCompleted,
-            CreatedAt = result.createdAt,
-            UpdatedAt = result.updatedAt
+            id = result.id,
+            sessionId = result.sessionId,
+            formData = formData,
+            currentStep = result.currentStep,
+            isCompleted = result.isCompleted,
+            createdAt = result.createdAt,
+            updatedAt = result.updatedAt
         };
     }
 
@@ -49,7 +49,7 @@ public class FormStateService : IFormStateService
     {
         using var connection = new SqlConnection(_connectionString);
 
-        var xml = ConvertFormDataToXml(request.FormData);
+        var xml = ConvertFormDataToXml(request.formData);
 
         const string sql = @"
             MERGE FormState AS target
@@ -70,20 +70,20 @@ public class FormStateService : IFormStateService
 
         var result = await connection.QueryFirstAsync(sql, new
         {
-            SessionId = request.SessionId,
+            SessionId = request.sessionId,
             FormDataXml = xml,
-            CurrentStep = request.CurrentStep
+            CurrentStep = request.currentStep
         });
 
         return new FormStateDto
         {
-            Id = result.id,
-            SessionId = result.sessionId,
-            FormData = request.FormData,
-            CurrentStep = result.currentStep,
-            IsCompleted = result.isCompleted,
-            CreatedAt = result.createdAt,
-            UpdatedAt = result.updatedAt
+            id = result.id,
+            sessionId = result.sessionId,
+            formData = request.formData,
+            currentStep = result.currentStep,
+            isCompleted = result.isCompleted,
+            createdAt = result.createdAt,
+            updatedAt = result.updatedAt
         };
     }
 
@@ -138,29 +138,29 @@ public class FormStateService : IFormStateService
         var doc = new XDocument(
             new XElement("FormData",
                 new XElement("PersonalInfo",
-                    new XElement("FirstName", formData.PersonalInfo.FirstName),
-                    new XElement("LastName", formData.PersonalInfo.LastName),
-                    new XElement("Phone", formData.PersonalInfo.Phone),
-                    new XElement("Email", formData.PersonalInfo.Email)
+                    new XElement("FirstName", formData.personalInfo.firstName),
+                    new XElement("LastName", formData.personalInfo.lastName),
+                    new XElement("Phone", formData.personalInfo.phone),
+                    new XElement("Email", formData.personalInfo.email)
                 ),
                 new XElement("JobInterest",
-                    new XElement("CategoryId", formData.JobInterest.CategoryId),
+                    new XElement("CategoryId", formData.jobInterest.categoryId?.ToString() ?? ""),
                     new XElement("RoleIds",
-                        formData.JobInterest.RoleIds.Select(id => new XElement("RoleId", id))
+                        formData.jobInterest.roleIds.Select(id => new XElement("RoleId", id))
                     ),
-                    new XElement("LocationId", formData.JobInterest.LocationId),
-                    new XElement("Skills",
-                        formData.JobInterest.Skills.Select(skill => new XElement("Skill", skill))
+                    new XElement("LocationId", formData.jobInterest.locationId?.ToString() ?? ""),
+                    new XElement("SkillIds",
+                        formData.jobInterest.skillIds.Select(skill => new XElement("SkillId", skill))
                     ),
-                    new XElement("ExperienceLevel", formData.JobInterest.ExperienceLevel ?? ""),
-                    new XElement("SalaryExpectation", formData.JobInterest.SalaryExpectation?.ToString() ?? "")
+                    new XElement("ExperienceLevel", formData.jobInterest.experienceLevel ?? ""),
+                    new XElement("SalaryExpectation", formData.jobInterest.salaryExpectation?.ToString() ?? "")
                 ),
                 new XElement("Notifications",
-                    new XElement("Email", formData.Notifications.Email),
-                    new XElement("Phone", formData.Notifications.Phone),
-                    new XElement("Call", formData.Notifications.Call),
-                    new XElement("SMS", formData.Notifications.SMS),
-                    new XElement("WhatsApp", formData.Notifications.WhatsApp)
+                    new XElement("IsEmailEnabled", formData.notifications.isEmailEnabled),
+                    new XElement("IsPhoneEnabled", formData.notifications.isPhoneEnabled),
+                    new XElement("IsCallEnabled", formData.notifications.isCallEnabled),
+                    new XElement("IsSmsEnabled", formData.notifications.isSmsEnabled),
+                    new XElement("IsWhatsappEnabled", formData.notifications.isWhatsappEnabled)
                 )
             )
         );
@@ -182,31 +182,39 @@ public class FormStateService : IFormStateService
 
         return new FormDataDto
         {
-            PersonalInfo = new PersonalInfoDto
+            personalInfo = new PersonalInfoDto
             {
-                FirstName = personalInfo?.Element("FirstName")?.Value ?? "",
-                LastName = personalInfo?.Element("LastName")?.Value ?? "",
-                Phone = personalInfo?.Element("Phone")?.Value ?? "",
-                Email = personalInfo?.Element("Email")?.Value ?? ""
+                firstName = personalInfo?.Element("FirstName")?.Value ?? "",
+                lastName = personalInfo?.Element("LastName")?.Value ?? "",
+                phone = personalInfo?.Element("Phone")?.Value ?? "",
+                email = personalInfo?.Element("Email")?.Value ?? ""
             },
-            JobInterest = new JobInterestDto
+            jobInterest = new JobInterestDto
             {
-                CategoryId = jobInterest?.Element("CategoryId")?.Value ?? "",
-                RoleIds = jobInterest?.Element("RoleIds")?.Elements("RoleId")
-                    .Select(e => e.Value).ToList() ?? new List<string>(),
-                LocationId = jobInterest?.Element("LocationId")?.Value ?? "",
-                Skills = jobInterest?.Element("Skills")?.Elements("Skill")
-                    .Select(e => e.Value).ToList() ?? new List<string>(),
-                ExperienceLevel = jobInterest?.Element("ExperienceLevel")?.Value,
-                SalaryExpectation = decimal.TryParse(jobInterest?.Element("SalaryExpectation")?.Value, out var salary) ? salary : null
+                categoryId = Guid.TryParse(jobInterest?.Element("CategoryId")?.Value, out var catId) && catId != Guid.Empty ? catId : null,
+                roleIds = jobInterest?.Element("RoleIds")?.Elements("RoleId")
+                    .Select(e => Guid.TryParse(e.Value, out var roleId) ? roleId : Guid.Empty)
+                    .Where(id => id != Guid.Empty)
+                    .ToList() ?? new List<Guid>(),
+                locationId = Guid.TryParse(jobInterest?.Element("LocationId")?.Value, out var locId) && locId != Guid.Empty ? locId : null,
+                skillIds = jobInterest?.Element("SkillIds")?.Elements("SkillId")
+                    .Select(e => Guid.TryParse(e.Value, out var skillId) ? skillId : Guid.Empty)
+                    .Where(id => id != Guid.Empty)
+                    .ToList() ?? new List<Guid>(),
+                experienceLevel = jobInterest?.Element("ExperienceLevel")?.Value,
+                salaryExpectation = decimal.TryParse(jobInterest?.Element("SalaryExpectation")?.Value, out var salary) ? salary : null
             },
-            Notifications = new NotificationDto
+            notifications = new NotificationDto
             {
-                Email = bool.TryParse(notifications?.Element("Email")?.Value, out var email) && email,
-                Phone = bool.TryParse(notifications?.Element("Phone")?.Value, out var phone) && phone,
-                Call = bool.TryParse(notifications?.Element("Call")?.Value, out var call) && call,
-                SMS = bool.TryParse(notifications?.Element("SMS")?.Value, out var sms) && sms,
-                WhatsApp = bool.TryParse(notifications?.Element("WhatsApp")?.Value, out var whatsapp) && whatsapp
+                id = Guid.NewGuid(),
+                userId = Guid.Empty, // יעודכן בהמשך
+                isEmailEnabled = bool.TryParse(notifications?.Element("IsEmailEnabled")?.Value, out var email) && email,
+                isPhoneEnabled = bool.TryParse(notifications?.Element("IsPhoneEnabled")?.Value, out var phone) && phone,
+                isCallEnabled = bool.TryParse(notifications?.Element("IsCallEnabled")?.Value, out var call) && call,
+                isSmsEnabled = bool.TryParse(notifications?.Element("IsSmsEnabled")?.Value, out var sms) && sms,
+                isWhatsappEnabled = bool.TryParse(notifications?.Element("IsWhatsappEnabled")?.Value, out var whatsapp) && whatsapp,
+                createdAt = DateTime.UtcNow,
+                updatedAt = DateTime.UtcNow
             }
         };
     }

@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { z } from 'zod';
+// Import the real service
+import { checkEmailAvailability } from '../services/user.service';
 
 interface ValidationResult {
   isValid: boolean;
@@ -119,7 +121,8 @@ export function useFormValidation<T>({
 // Hook for delayed validation with debouncing
 interface UseDelayedValidationProps {
   value: string;
-  validator: (value: string) => Promise<boolean> | boolean;
+  // validator: (value: string) => Promise<boolean> | boolean;
+  validator: (value: string) => Promise<string | null> | boolean; //Promise<string | null>
   delay?: number;
   triggerValidation?: boolean;
 }
@@ -185,9 +188,22 @@ export function useDelayedValidation({
           return;
         }
 
-        setIsValid(result);
-        if (!result) {
-          setError('Validation failed');
+        // If validator returns null - no error, field is valid
+        if (result === null) {
+          setIsValid(true);
+          setError(null);
+        }
+        // If validator returns string (error message), treat as invalid
+        else if (typeof result === 'string') {
+          setIsValid(false);
+          setError(result);
+        }
+        // If validator returns boolean
+        else {
+          setIsValid(result);
+          if (!result) {
+            setError('Validation failed');
+          }
         }
       } catch (err) {
         // Check if request was aborted
@@ -226,27 +242,34 @@ export function useDelayedValidation({
   };
 }
 
-// Mock API function for email uniqueness check (client-side simulation)
-export const checkEmailUniqueness = async (email: string): Promise<boolean> => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 800));
-
-  // Mock some existing emails for testing
-  const existingEmails = [
-    'test@example.com',
-    'admin@test.com',
-    'user@demo.com',
-    'john@company.com',
-  ];
-
-  // Check if email exists (case insensitive)
-  const emailExists = existingEmails.some(
-    (existing) => existing.toLowerCase() === email.toLowerCase(),
-  );
-
-  if (emailExists) {
-    throw new Error('This email is already registered!');
+// Replace the mock function with real API call
+export const checkEmailUniqueness = async (email: string): Promise<string | null> => {
+  // Don't validate empty values
+  if (!email || email.trim() === '') {
+    return null;
   }
 
-  return true; // Email is unique
+  // Basic email format check first
+  const emailRegex =
+    /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,8}(?:\.[a-z]{2})?)$/i;
+  if (!emailRegex.test(email)) {
+    return null; // Let the form validation handle format errors
+  }
+
+  try {
+    const result = await checkEmailAvailability(email);
+    console.log('result ', result);
+    // אם האימל זמין - אין שגיאה
+    if (result.isAvailable) {
+      console.log('result.isAvailable ', result.isAvailable);
+      return null; // No error
+    }
+
+    console.log('result.message ', result.message);
+    // אם האימל תפוס - החזר הודעת שגיאה
+    return result.message || 'This email is already registered!';
+  } catch (error) {
+    console.error('Error checking email uniqueness:', error);
+    return 'Unable to verify email availability. Please try again.';
+  }
 };
