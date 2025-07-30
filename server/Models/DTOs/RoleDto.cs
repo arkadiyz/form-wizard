@@ -15,3 +15,9 @@ public class RoleFilterRequest
     public decimal? minSalary { get; set; }
     public decimal? maxSalary { get; set; }
 }
+
+public class RoleSearchRequest
+{
+    public List<string> categoryIds { get; set; } = new();
+    public string searchText { get; set; } = string.Empty;
+}

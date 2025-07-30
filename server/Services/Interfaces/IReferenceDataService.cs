@@ -14,6 +14,7 @@ public interface IReferenceDataService
     Task<List<RoleDto>> getRolesAsync(RoleFilterRequest? filter = null);
     Task<List<RoleDto>> getRolesByCategoryAsync(Guid categoryId);
     Task<RoleDto?> getRoleByIdAsync(Guid roleId);
+    Task<List<RoleDto>> searchRolesByCategoriesAndTextAsync(RoleSearchRequest request);
 
     // Locations
     Task<List<LocationDto>> getLocationsAsync(LocationFilterRequest? filter = null);

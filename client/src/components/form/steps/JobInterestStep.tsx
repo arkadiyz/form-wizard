@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
@@ -19,6 +19,8 @@ interface JobInterestStepProps {
 
 export const JobInterestStep: React.FC<JobInterestStepProps> = ({ locale = 'en' }) => {
   const { formData, updateJobInterest } = useFormStore();
+  const [roleSearchText, setRoleSearchText] = useState('');
+  const [debouncedRoleSearchText, setDebouncedRoleSearchText] = useState('');
 
   // React Hook Form setup
   const {
@@ -34,6 +36,15 @@ export const JobInterestStep: React.FC<JobInterestStepProps> = ({ locale = 'en' 
     defaultValues: formData.jobInterest,
     mode: 'onBlur',
   });
+
+  // Debounce the search text
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedRoleSearchText(roleSearchText);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  }, [roleSearchText]);
 
   // Watch for changes - using useMemo to satisfy React Hook rules
   const categoryIds = useMemo(() => watch('categoryIds') || [], [watch]);
@@ -119,21 +130,33 @@ export const JobInterestStep: React.FC<JobInterestStepProps> = ({ locale = 'en' 
     return 0;
   }, [categoryIds]);
 
+  // Use dynamic search for roles instead of loading all roles upfront
   const {
     data: roles = [],
     isLoading: rolesLoading,
     error: rolesError,
   } = useQuery({
-    queryKey: ['roles', categoryIds],
+    queryKey: ['roles', categoryIds, debouncedRoleSearchText],
     queryFn: () => {
       if (categoryIds.length === 0) return Promise.resolve([]);
-      console.log('🔍 Calling getRolesByCategories with categories:', categoryIds);
-      return referenceDataService.getRolesByCategories(categoryIds);
+      console.log('🔍 Calling searchRolesByCategoriesAndText with:', {
+        categoryIds,
+        debouncedRoleSearchText,
+      });
+      return referenceDataService.searchRolesByCategoriesAndText(
+        categoryIds,
+        debouncedRoleSearchText,
+      );
     },
     enabled: categoryIds.length > 0,
     retry: 2,
     staleTime: 5 * 60 * 1000,
   });
+
+  // Callback for role search
+  const handleRoleSearch = useCallback((searchText: string) => {
+    setRoleSearchText(searchText);
+  }, []);
 
   // Debug: Log roles data when it changes
   React.useEffect(() => {
@@ -349,7 +372,7 @@ export const JobInterestStep: React.FC<JobInterestStepProps> = ({ locale = 'en' 
             )}
           />
 
-          {/* Job Roles - Multi-select, dependent on categories */}
+          {/* Job Roles - Multi-select with dynamic search */}
           <Controller
             name="roleIds"
             control={control}
@@ -369,10 +392,12 @@ export const JobInterestStep: React.FC<JobInterestStepProps> = ({ locale = 'en' 
                     ) : (
                       <Autocomplete
                         label="Job Roles"
-                        placeholder="Select roles based on your categories..."
+                        placeholder="Type to search roles based on your categories..."
                         options={roles}
                         selectedValues={field.value || []}
+                        inputValue={roleSearchText}
                         onSelectionChange={handleRoleChange}
+                        onSearchChange={handleRoleSearch}
                         multiSelect
                         maxSelections={getRoleLimit}
                         isRequired

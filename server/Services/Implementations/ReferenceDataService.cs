@@ -89,6 +89,47 @@ public class ReferenceDataService : IReferenceDataService
         return roles.FirstOrDefault(r => r.id == roleId);
     }
 
+    public async Task<List<RoleDto>> searchRolesByCategoriesAndTextAsync(RoleSearchRequest request)
+    {
+        var cacheKey = $"roles_search_{string.Join(",", request.categoryIds)}_{request.searchText}";
+
+        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5); // Shorter cache for search results
+
+            using var connection = new SqlConnection(_connectionString);
+            var sql = "SELECT id, categoryId, name, createdAt FROM Roles WHERE 1=1";
+            var parameters = new DynamicParameters();
+
+            // Filter by categories if provided
+            if (request.categoryIds?.Any() == true)
+            {
+                var categoryGuids = request.categoryIds
+                    .Where(id => Guid.TryParse(id, out _))
+                    .Select(id => Guid.Parse(id))
+                    .ToList();
+
+                if (categoryGuids.Any())
+                {
+                    sql += " AND categoryId IN @categoryIds";
+                    parameters.Add("categoryIds", categoryGuids);
+                }
+            }
+
+            // Filter by search text if provided
+            if (!string.IsNullOrEmpty(request.searchText))
+            {
+                sql += " AND name LIKE @searchText";
+                parameters.Add("searchText", $"%{request.searchText}%");
+            }
+
+            sql += " ORDER BY name";
+
+            var roles = await connection.QueryAsync<RoleDto>(sql, parameters);
+            return roles.ToList();
+        }) ?? new List<RoleDto>();
+    }
+
     // Locations
     public async Task<List<LocationDto>> getLocationsAsync(LocationFilterRequest? filter = null)
     {

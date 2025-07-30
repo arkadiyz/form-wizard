@@ -257,4 +257,29 @@ public class ReferenceController : ControllerBase
             });
         }
     }
+
+    [HttpPost("roles/search")]
+    public async Task<ActionResult<ApiResponse<List<RoleDto>>>> searchRoles([FromBody] RoleSearchRequest request)
+    {
+        try
+        {
+            var roles = await _referenceDataService.searchRolesByCategoriesAndTextAsync(request);
+            
+            return Ok(new ApiResponse<List<RoleDto>>
+            {
+                success = true,
+                message = "Roles retrieved successfully",
+                data = roles
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<List<RoleDto>>
+            {
+                success = false,
+                message = "Failed to search roles",
+                errors = [ex.Message]
+            });
+        }
+    }
 }

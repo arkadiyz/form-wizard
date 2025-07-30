@@ -37,6 +37,31 @@ export interface SkillOption {
 }
 
 export const referenceDataService = {
+  // Search roles by categories and text
+  searchRolesByCategoriesAndText: async (
+    categoryIds: string[],
+    searchText: string = '',
+  ): Promise<RoleOption[]> => {
+    try {
+      const requestBody = {
+        categoryIds,
+        searchText: searchText.trim(),
+      };
+
+      console.log('🔍 Searching roles with:', requestBody);
+      const response = await httpService.post('/reference/roles/search', requestBody);
+      return response.data.map((item: ApiResponseItem) => ({
+        id: item.id,
+        label: item.name,
+        value: item.id,
+        categoryId: item.categoryId || '',
+      }));
+    } catch (error) {
+      console.error('❌ Error searching roles:', error);
+      throw new Error('Failed to search roles');
+    }
+  },
+
   // Get all categories
   getCategories: async (): Promise<CategoryOption[]> => {
     try {
