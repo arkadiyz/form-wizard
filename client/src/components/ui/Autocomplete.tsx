@@ -78,21 +78,16 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
       inputValueLength: inputValue.length,
     });
 
-    // In multiSelect mode, show available options even without input
+    // In multiSelect mode, show ALL options (including selected ones)
     if (multiSelect) {
-      // Filter out already selected values
-      const availableOptions = options.filter((option) => !selectedValues.includes(option.value));
-
-      console.log('📊 Available options after filtering selected:', availableOptions.length);
-
       if (!inputValue || inputValue.length === 0) {
-        const result = availableOptions.slice(0, maxSuggestions);
-        console.log('📤 Returning all available options:', result.length);
+        const result = options.slice(0, maxSuggestions);
+        console.log('📤 Returning all options:', result.length);
         return result;
       }
 
       const searchTerm = inputValue.toLowerCase();
-      const filtered = availableOptions.filter(
+      const filtered = options.filter(
         (option) =>
           option.label.toLowerCase().includes(searchTerm) ||
           option.category?.toLowerCase().includes(searchTerm),
@@ -259,28 +254,37 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
       // Custom validation if provided
       if (customValidation) {
         const validation = customValidation(selectedValues, option.value);
-        if (!validation.canAdd) {
+        if (!validation.canAdd && !selectedValues.includes(option.value)) {
           // Show validation error (e.g., via a toast or inline message)
           console.warn(validation.reason);
           return;
         }
       }
 
-      const newValues = [...selectedValues, option.value];
-      if (maxSelections && newValues.length > maxSelections) return;
+      // Toggle selection instead of just adding
+      let newValues;
+      if (selectedValues.includes(option.value)) {
+        // If already selected, remove it (uncheck)
+        newValues = selectedValues.filter((val) => val !== option.value);
+      } else {
+        // If not selected, add it (check)
+        newValues = [...selectedValues, option.value];
+        if (maxSelections && newValues.length > maxSelections) return;
+      }
 
       setSelectedValues(newValues);
       onSelectionChange?.(newValues);
 
-      // נקה את הטקסט בשדה הקלט כדי לאפשר חיפוש נוסף
-      setInputValue('');
+      // Keep the dropdown open and don't clear input
+      // This allows multiple selections without closing
     } else {
       setInputValue(option.label);
       onSelectionChange?.(option.value);
+      setIsOpen(false);
+      setSelectedIndex(-1);
     }
 
-    setIsOpen(false);
-    setSelectedIndex(-1);
+    // Keep focus on input for continued interaction
     inputRef.current?.focus();
   };
 
@@ -430,14 +434,30 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
                 aria-selected={index === selectedIndex}
               >
                 <div className={styles.optionContent}>
-                  <span className={styles.optionLabel}>
-                    {highlightText(option.label, inputValue)}
-                  </span>
-                  {option.category && (
-                    <span className={styles.optionCategory}>
-                      {highlightText(option.category, inputValue)}
+                  <div className={styles.textContent}>
+                    <span className={styles.optionLabel}>
+                      {highlightText(option.label, inputValue)}
                     </span>
-                  )}
+                    {option.category && (
+                      <span className={styles.optionCategory}>
+                        {highlightText(option.category, inputValue)}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* הוספת checkbox בצד ימין */}
+                  <div className={styles.checkboxContainer}>
+                    <input
+                      type="checkbox"
+                      checked={selectedValues.includes(option.value)}
+                      onChange={() => {}} // הפונקציונליות כבר קיימת ב-click
+                      className={styles.optionCheckbox}
+                      tabIndex={-1} // מונע focus על checkbox כי יש כבר על הפריט
+                    />
+                    <span className={styles.checkmark}>
+                      {selectedValues.includes(option.value) && '✓'}
+                    </span>
+                  </div>
                 </div>
               </li>
             ))}

@@ -89,7 +89,7 @@ export const Chips: React.FC<ChipsProps> = ({
         if (containerRef.current) {
           const rect = containerRef.current.getBoundingClientRect();
           setDropdownPosition({
-            top: rect.bottom + window.scrollY + 4, // 4px gap
+            top: rect.bottom + window.scrollY - 20, // חפיפה של 8px עם השדה
             left: rect.left + window.scrollX,
             width: rect.width,
           });

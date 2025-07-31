@@ -133,8 +133,18 @@
 
 .optionContent {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  align-items: center;
+  flex: 1;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.textContent {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-right: 0.75rem;
 }
 
 .optionLabel {
@@ -146,6 +156,9 @@
 .optionCategory {
   font-size: 0.75rem;
   color: #6b7280;
+  padding: 0.125rem 0.375rem;
+  background-color: #f3f4f6;
+  border-radius: 0.25rem;
 }
 
 .highlight {
@@ -296,4 +309,79 @@
 
 .removeItem:hover {
   background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Checkbox styling */
+.checkboxContainer {
+  display: flex;
+  align-items: center;
+  margin-left: 0.75rem;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.optionCheckbox {
+  /* מסתיר את checkbox המקורי */
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.checkmark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.25rem;
+  background-color: white;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: white;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+/* כשהאפשרות נבחרת */
+.suggestion:has(.optionCheckbox:checked) .checkmark,
+.optionCheckbox:checked + .checkmark {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+/* hover effect */
+.suggestion:hover .checkmark {
+  border-color: #6b7280;
+}
+
+.optionContent {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.textContent {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-right: 0.75rem;
+}
+
+.optionLabel {
+  font-size: 1rem;
+  color: #111827;
+  font-weight: 500;
+}
+
+.optionCategory {
+  font-size: 0.75rem;
+  color: #6b7280;
+  padding: 0.125rem 0.375rem;
+  background-color: #f3f4f6;
+  border-radius: 0.25rem;
 }
