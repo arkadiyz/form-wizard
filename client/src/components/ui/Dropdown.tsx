@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { Portal } from './Portal';
 import styles from './Dropdown.module.css';
 
 export interface DropdownOption {
@@ -44,6 +45,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   const [hasInteracted, setHasInteracted] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [selectedValue, setSelectedValue] = useState(value);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -58,7 +60,12 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      // בדיקה מורחבת יותר - גם Portal וגם container מקורי
+      const portalElement = document.getElementById('portal-root');
+      const isClickInPortal = portalElement?.contains(event.target as Node);
+      const isClickInContainer = dropdownRef.current?.contains(event.target as Node);
+
+      if (!isClickInContainer && !isClickInPortal) {
         setIsOpen(false);
         setFocusedIndex(-1);
         if (!hasInteracted) {
@@ -71,6 +78,68 @@ export const Dropdown: React.FC<DropdownProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [hasInteracted, onValidationTrigger]);
+
+  // Calculate dropdown position when it opens
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const updatePosition = () => {
+        if (dropdownRef.current) {
+          const rect = dropdownRef.current.getBoundingClientRect();
+          setDropdownPosition({
+            top: rect.bottom + window.scrollY + 4, // 4px gap
+            left: rect.left + window.scrollX,
+            width: rect.width,
+          });
+        }
+      };
+
+      // עדכון מיקום ראשוני
+      updatePosition();
+
+      // סגירת הפורטל בגלילה - גם חיצונית וגם פנימית
+      const handleScroll = () => {
+        setIsOpen(false);
+        setFocusedIndex(-1);
+      };
+
+      // סגירת הפורטל בשינוי גודל חלון
+      const handleResize = () => {
+        setIsOpen(false);
+        setFocusedIndex(-1);
+      };
+
+      // האזנה לגלילה של החלון הראשי
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      window.addEventListener('resize', handleResize);
+
+      // האזנה לגלילה פנימית של הטופס
+      const formContent = document.querySelector('.formContent, [class*="formContent"]');
+      if (formContent) {
+        formContent.addEventListener('scroll', handleScroll, { passive: true });
+      }
+
+      // האזנה לכל גלילה אפשרית בדף
+      const scrollableElements = document.querySelectorAll(
+        '[style*="overflow"], [class*="scroll"], [class*="overflow"]',
+      );
+      scrollableElements.forEach((element) => {
+        element.addEventListener('scroll', handleScroll, { passive: true });
+      });
+
+      return () => {
+        window.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('resize', handleResize);
+
+        if (formContent) {
+          formContent.removeEventListener('scroll', handleScroll);
+        }
+
+        scrollableElements.forEach((element) => {
+          element.removeEventListener('scroll', handleScroll);
+        });
+      };
+    }
+  }, [isOpen]);
 
   const handleToggle = () => {
     if (disabled) return;
@@ -216,24 +285,34 @@ export const Dropdown: React.FC<DropdownProps> = ({
         </button>
 
         {isOpen && (
-          <div className={styles.dropdown}>
-            <ul className={styles.options} role="listbox">
-              {enabledOptions.map((option, index) => (
-                <li
-                  key={option.value}
-                  className={`${styles.option} ${selectedValue === option.value ? styles.optionSelected : ''} ${
-                    index === focusedIndex ? styles.optionFocused : ''
-                  }`}
-                  onClick={() => handleOptionClick(option.value)}
-                  onMouseEnter={() => handleOptionMouseEnter(index)}
-                  role="option"
-                  aria-selected={selectedValue === option.value}
-                >
-                  {option.label}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <Portal>
+            <div
+              className={styles.dropdown}
+              style={{
+                position: 'fixed',
+                top: `${dropdownPosition.top}px`,
+                left: `${dropdownPosition.left}px`,
+                width: `${dropdownPosition.width}px`,
+              }}
+            >
+              <ul className={styles.options} role="listbox">
+                {enabledOptions.map((option, index) => (
+                  <li
+                    key={option.value}
+                    className={`${styles.option} ${selectedValue === option.value ? styles.optionSelected : ''} ${
+                      index === focusedIndex ? styles.optionFocused : ''
+                    }`}
+                    onClick={() => handleOptionClick(option.value)}
+                    onMouseEnter={() => handleOptionMouseEnter(index)}
+                    role="option"
+                    aria-selected={selectedValue === option.value}
+                  >
+                    {option.label}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Portal>
         )}
       </div>
 

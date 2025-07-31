@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Portal } from './Portal';
 import styles from './Chips.module.css';
 
 export interface ChipOption {
@@ -39,6 +40,7 @@ export const Chips: React.FC<ChipsProps> = ({
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -65,50 +67,81 @@ export const Chips: React.FC<ChipsProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      // בדיקה מורחבת יותר - גם Portal וגם container מקורי
+      const portalElement = document.getElementById('portal-root');
+      const isClickInPortal = portalElement?.contains(event.target as Node);
+      const isClickInContainer = containerRef.current?.contains(event.target as Node);
+
+      if (!isClickInContainer && !isClickInPortal) {
         setIsOpen(false);
-      }
-    };
-
-    // Auto-scroll when dropdown opens
-    const handleAutoScroll = () => {
-      if (isOpen && containerRef.current) {
-        setTimeout(() => {
-          const container = containerRef.current;
-          if (!container) return;
-
-          const rect = container.getBoundingClientRect();
-          const dropdownHeight = 12 * 16; // 12rem converted to pixels (assuming 16px = 1rem)
-          const viewportHeight = window.innerHeight;
-          const scrollBuffer = 20; // Extra space for comfort
-
-          // Check if dropdown would be cut off at the bottom
-          const bottomOfDropdown = rect.bottom + dropdownHeight;
-          const isDropdownCutOff = bottomOfDropdown > viewportHeight - scrollBuffer;
-
-          if (isDropdownCutOff) {
-            // Calculate how much to scroll
-            const scrollAmount = bottomOfDropdown - viewportHeight + scrollBuffer;
-
-            // Smooth scroll
-            window.scrollBy({
-              top: scrollAmount,
-              behavior: 'smooth',
-            });
-          }
-        }, 100); // Small delay to ensure dropdown is rendered
+        setSelectedIndex(-1);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-    if (isOpen) {
-      handleAutoScroll();
+  // Calculate dropdown position when it opens
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const updatePosition = () => {
+        if (containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          setDropdownPosition({
+            top: rect.bottom + window.scrollY + 4, // 4px gap
+            left: rect.left + window.scrollX,
+            width: rect.width,
+          });
+        }
+      };
+
+      // עדכון מיקום ראשוני
+      updatePosition();
+
+      // סגירת הפורטל בגלילה - גם חיצונית וגם פנימית
+      const handleScroll = () => {
+        setIsOpen(false);
+        setSelectedIndex(-1);
+      };
+
+      // סגירת הפורטל בשינוי גודל חלון
+      const handleResize = () => {
+        setIsOpen(false);
+        setSelectedIndex(-1);
+      };
+
+      // האזנה לגלילה של החלון הראשי
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      window.addEventListener('resize', handleResize);
+
+      // האזנה לגלילה פנימית של הטופס
+      const formContent = document.querySelector('.formContent, [class*="formContent"]');
+      if (formContent) {
+        formContent.addEventListener('scroll', handleScroll, { passive: true });
+      }
+
+      // האזנה לכל גלילה אפשרית בדף
+      const scrollableElements = document.querySelectorAll(
+        '[style*="overflow"], [class*="scroll"], [class*="overflow"]',
+      );
+      scrollableElements.forEach((element) => {
+        element.addEventListener('scroll', handleScroll, { passive: true });
+      });
+
+      return () => {
+        window.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('resize', handleResize);
+
+        if (formContent) {
+          formContent.removeEventListener('scroll', handleScroll);
+        }
+
+        scrollableElements.forEach((element) => {
+          element.removeEventListener('scroll', handleScroll);
+        });
+      };
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
   }, [isOpen]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -277,28 +310,38 @@ export const Chips: React.FC<ChipsProps> = ({
         </div>
       </div>
 
-      {/* Move suggestions outside the container */}
+      {/* Move suggestions to Portal with dynamic positioning */}
       {isOpen && displayOptions.length > 0 && (
-        <div className={styles.suggestions}>
-          <ul className={styles.optionsList}>
-            {displayOptions.map((option, index) => (
-              <li
-                key={option.value}
-                className={`${styles.option} ${option.disabled ? styles.disabled : ''} ${
-                  selectedIndex === index ? styles.keyboardSelected : ''
-                }`}
-                onClick={() => !option.disabled && addChip(option.value)}
-              >
-                <span className={styles.optionLabel}>{option.label}</span>
-                {option.category && (
-                  <span className={`${styles.optionBadge} ${styles[option.category]}`}>
-                    {option.category}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <Portal>
+          <div
+            className={styles.suggestions}
+            style={{
+              position: 'fixed',
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+              width: `${dropdownPosition.width}px`,
+            }}
+          >
+            <ul className={styles.optionsList}>
+              {displayOptions.map((option, index) => (
+                <li
+                  key={option.value}
+                  className={`${styles.option} ${option.disabled ? styles.disabled : ''} ${
+                    selectedIndex === index ? styles.keyboardSelected : ''
+                  }`}
+                  onClick={() => !option.disabled && addChip(option.value)}
+                >
+                  <span className={styles.optionLabel}>{option.label}</span>
+                  {option.category && (
+                    <span className={`${styles.optionBadge} ${styles[option.category]}`}>
+                      {option.category}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Portal>
       )}
 
       {hint && !showError && <span className={styles.hint}>{hint}</span>}
