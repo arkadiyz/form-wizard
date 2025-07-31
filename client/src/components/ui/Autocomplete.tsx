@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Portal } from './Portal';
 import styles from './Autocomplete.module.css';
 
 export interface AutocompleteOption {
@@ -59,10 +58,8 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
   const [hasInteracted, setHasInteracted] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [selectedValues, setSelectedValues] = useState<string[]>(controlledSelectedValues || []);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const showError = hasInteracted && error;
   const minSearchLength = 2; // הקטנת הדרישה מ-3 ל-2 תווים
@@ -124,12 +121,12 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // בדיקה מורחבת יותר - גם Portal וגם container מקורי
-      const portalElement = document.getElementById('portal-root');
-      const isClickInPortal = portalElement?.contains(event.target as Node);
-      const isClickInContainer = containerRef.current?.contains(event.target as Node);
-      
-      if (!isClickInContainer && !isClickInPortal) {
+      if (
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node) &&
+        listRef.current &&
+        !listRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
         setSelectedIndex(-1);
       }
@@ -282,68 +279,8 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
     );
   };
 
-  // Calculate dropdown position when it opens
-  useEffect(() => {
-    if (isOpen && containerRef.current) {
-      const updatePosition = () => {
-        if (containerRef.current) {
-          const rect = containerRef.current.getBoundingClientRect();
-          setDropdownPosition({
-            top: rect.bottom + window.scrollY + 4, // 4px gap
-            left: rect.left + window.scrollX,
-            width: rect.width,
-          });
-        }
-      };
-
-      // עדכון מיקום ראשוני
-      updatePosition();
-
-      // סגירת הפורטל בגלילה - גם חיצונית וגם פנימית
-      const handleScroll = () => {
-        setIsOpen(false);
-        setSelectedIndex(-1);
-      };
-
-      // סגירת הפורטל בשינוי גודל חלון
-      const handleResize = () => {
-        setIsOpen(false);
-        setSelectedIndex(-1);
-      };
-
-      // האזנה לגלילה של החלון הראשי
-      window.addEventListener('scroll', handleScroll, { passive: true });
-      window.addEventListener('resize', handleResize);
-
-      // האזנה לגלילה פנימית של הטופס
-      const formContent = document.querySelector('.formContent, [class*="formContent"]');
-      if (formContent) {
-        formContent.addEventListener('scroll', handleScroll, { passive: true });
-      }
-
-      // האזנה לכל גלילה אפשרית בדף
-      const scrollableElements = document.querySelectorAll('[style*="overflow"], [class*="scroll"], [class*="overflow"]');
-      scrollableElements.forEach((element) => {
-        element.addEventListener('scroll', handleScroll, { passive: true });
-      });
-
-      return () => {
-        window.removeEventListener('scroll', handleScroll);
-        window.removeEventListener('resize', handleResize);
-        
-        if (formContent) {
-          formContent.removeEventListener('scroll', handleScroll);
-        }
-
-        scrollableElements.forEach((element) => {
-          element.removeEventListener('scroll', handleScroll);
-        });
-      };
-    }
-  }, [isOpen]);
-
   return (
-    <div className={`${styles.autocompleteWrapper}`} dir={dir} ref={containerRef}>
+    <div className={`${styles.autocompleteWrapper}`} dir={dir}>
       {label && (
         <label className={styles.label}>
           {label}
@@ -407,40 +344,28 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
       </div>
 
       {isOpen && filteredOptions.length > 0 && (
-        <Portal>
-          <ul
-            ref={listRef}
-            className={styles.suggestions}
-            role="listbox"
-            style={{
-              position: 'absolute',
-              top: `${dropdownPosition.top}px`,
-              left: `${dropdownPosition.left}px`,
-              width: `${dropdownPosition.width}px`,
-            }}
-          >
-            {filteredOptions.map((option, index) => (
-              <li
-                key={option.value}
-                className={`${styles.suggestion} ${index === selectedIndex ? styles.selected : ''} ${option.disabled ? styles.disabled : ''}`}
-                onClick={() => !option.disabled && handleOptionSelect(option)}
-                role="option"
-                aria-selected={index === selectedIndex}
-              >
-                <div className={styles.optionContent}>
-                  <span className={styles.optionLabel}>
-                    {highlightText(option.label, inputValue)}
+        <ul ref={listRef} className={styles.suggestions} role="listbox">
+          {filteredOptions.map((option, index) => (
+            <li
+              key={option.value}
+              className={`${styles.suggestion} ${index === selectedIndex ? styles.selected : ''} ${option.disabled ? styles.disabled : ''}`}
+              onClick={() => !option.disabled && handleOptionSelect(option)}
+              role="option"
+              aria-selected={index === selectedIndex}
+            >
+              <div className={styles.optionContent}>
+                <span className={styles.optionLabel}>
+                  {highlightText(option.label, inputValue)}
+                </span>
+                {option.category && (
+                  <span className={styles.optionCategory}>
+                    {highlightText(option.category, inputValue)}
                   </span>
-                  {option.category && (
-                    <span className={styles.optionCategory}>
-                      {highlightText(option.category, inputValue)}
-                    </span>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Portal>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
 
       {hint && !showError && <span className={styles.hint}>{hint}</span>}

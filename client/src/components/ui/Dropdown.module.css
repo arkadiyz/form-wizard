@@ -89,11 +89,11 @@
 }
 
 .dropdown {
-  position: fixed; /* שינוי מ-absolute ל-fixed עבור Portal */
+  position: absolute;
   top: 100%;
   left: 0;
   right: 0;
-  z-index: 1000; /* z-index גבוה יותר כיוון שעכשיו זה ב-Portal */
+  z-index: 50;
   background: #ffffff;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
@@ -103,7 +103,6 @@
   margin-top: 0.25rem;
   max-height: 15rem;
   overflow-y: auto;
-  pointer-events: auto; /* אפשר אינטראקציה ב-Portal */
 }
 
 .options {

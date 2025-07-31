@@ -85,11 +85,11 @@
 }
 
 .suggestions {
-  position: fixed; /* שינוי מ-absolute ל-fixed עבור Portal */
-  top: 100%; /* מיקום מתחת לשדה החיפוש */
+  position: absolute;
+  top: calc(100% - 1px); /* חפיפה של 1px עם השדה */
   left: 0;
   right: 0;
-  z-index: 1000; /* z-index גבוה יותר כיוון שעכשיו זה ב-Portal */
+  z-index: 10; /* הורדה מ-50 ל-10 כדי שלא יופיע מעל הכל */
   background: #ffffff;
   border: 1px solid #3b82f6; /* אותו צבע כמו השדה בפוקוס */
   border-radius: 0.5rem;
@@ -101,7 +101,9 @@
   overflow-y: auto;
   list-style: none;
   padding: 0.25rem 0;
-  pointer-events: auto; /* אפשר אינטראקציה ב-Portal */
+  border-top: none; /* הסרת הגבול העליון */
+  border-top-left-radius: 0; /* הסרת עיגול עליון */
+  border-top-right-radius: 0; /* הסרת עיגול עליון */
 }
 
 .suggestion {
