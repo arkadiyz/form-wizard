@@ -95,7 +95,6 @@ export const ConfirmationStep = forwardRef<ConfirmationStepRef, ConfirmationStep
       setSubmission({ isLoading: true, isSuccess: false, error: null });
 
       try {
-        // API call to submit form data
         const response = await fetch('/api/form/submit', {
           method: 'POST',
           headers: {
@@ -110,10 +109,8 @@ export const ConfirmationStep = forwardRef<ConfirmationStepRef, ConfirmationStep
 
         await response.json();
 
-        // Success state
         setSubmission({ isLoading: false, isSuccess: true, error: null });
 
-        // Optional: Reset form after successful submission
         setTimeout(() => {
           resetForm();
         }, 3000);
@@ -126,12 +123,10 @@ export const ConfirmationStep = forwardRef<ConfirmationStepRef, ConfirmationStep
       }
     };
 
-    // Expose handleSubmit to parent component
     useImperativeHandle(ref, () => ({
       handleSubmit,
     }));
 
-    // Success state component
     if (submission.isSuccess) {
       return (
         <motion.div
@@ -162,9 +157,7 @@ export const ConfirmationStep = forwardRef<ConfirmationStepRef, ConfirmationStep
           subtitle="Please review your information below before submitting your application."
         />
 
-        {/* Summary Cards */}
         <div className={styles.summaryGrid}>
-          {/* Personal Information Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -203,7 +196,6 @@ export const ConfirmationStep = forwardRef<ConfirmationStepRef, ConfirmationStep
             </div>
           </motion.div>
 
-          {/* Job Interest Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -246,7 +238,6 @@ export const ConfirmationStep = forwardRef<ConfirmationStepRef, ConfirmationStep
             </div>
           </motion.div>
 
-          {/* Notification Preferences Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -306,7 +297,6 @@ export const ConfirmationStep = forwardRef<ConfirmationStepRef, ConfirmationStep
           </motion.div>
         </div>
 
-        {/* Error Message Only */}
         {submission.error && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}

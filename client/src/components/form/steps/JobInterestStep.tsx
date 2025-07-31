@@ -404,11 +404,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
                       dir={locale === 'he' ? 'rtl' : 'ltr'}
                     />
                   </>
-                  {categoryIds.length === 0 && (
-                    <div className={styles.roleHint}>
-                      Please select job categories first to see available roles
-                    </div>
-                  )}
                 </div>
               )}
             />
