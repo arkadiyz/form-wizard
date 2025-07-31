@@ -4,7 +4,10 @@ import React, { useRef } from 'react';
 import { FormWizard } from '../components/form/FormWizard';
 import { PersonalInfoStep, PersonalInfoStepRef } from '../components/form/steps/PersonalInfoStep';
 import { JobInterestStep, type JobInterestStepRef } from '../components/form/steps/JobInterestStep';
-import { NotificationsStep } from '../components/form/steps/NotificationsStep';
+import {
+  NotificationsStep,
+  type NotificationsStepRef,
+} from '../components/form/steps/NotificationsStep';
 import { ConfirmationStep } from '../components/form/steps/ConfirmationStep';
 import { useFormStore } from '../store/formStore';
 import { useTranslation } from '../lib/i18n';
@@ -15,6 +18,7 @@ export default function HomePage() {
   const confirmationRef = useRef<{ handleSubmit: () => void }>(null);
   const personalInfoRef = useRef<PersonalInfoStepRef>(null);
   const jobInterestRef = useRef<JobInterestStepRef>(null);
+  const notificationsRef = useRef<NotificationsStepRef>(null);
   const [isSaving, setIsSaving] = React.useState(false);
 
   const stepTitles = [
@@ -97,6 +101,41 @@ export default function HomePage() {
         setIsSaving(false);
         console.log('🟡 Finished saving process');
       }
+    } else if (currentStep === 3 && notificationsRef.current) {
+      console.log('🟡 In step 3, checking validity...');
+
+      // בדוק שהטופס תקין
+      const isValid = notificationsRef.current.isValid();
+      console.log('🟡 Form is valid:', isValid);
+
+      if (!isValid) {
+        alert('Please complete all required fields correctly');
+        return;
+      }
+
+      setIsSaving(true);
+      console.log('🟡 Starting to save...');
+
+      try {
+        // שמור את הנתונים
+        console.log('🟡 Calling notificationsRef.current.save()...');
+        const success = await notificationsRef.current.save();
+        console.log('🟡 Save result:', success);
+
+        if (success) {
+          console.log('🟢 Save successful, moving to next step');
+          setStep(currentStep + 1);
+        } else {
+          console.log('🔴 Save failed');
+          alert('Failed to save data. Please try again.');
+        }
+      } catch (error) {
+        console.error('🔴 Error saving:', error);
+        alert('An error occurred while saving. Please try again.');
+      } finally {
+        setIsSaving(false);
+        console.log('🟡 Finished saving process');
+      }
     } else if (currentStep === 4) {
       // If we're on confirmation step, submit the form
       confirmationRef.current?.handleSubmit();
@@ -123,7 +162,7 @@ export default function HomePage() {
       case 2:
         return <JobInterestStep ref={jobInterestRef} />;
       case 3:
-        return <NotificationsStep />;
+        return <NotificationsStep ref={notificationsRef} />;
       case 4:
         return <ConfirmationStep ref={confirmationRef} />;
       default:
