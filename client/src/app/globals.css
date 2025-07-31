@@ -17,20 +17,20 @@ body {
 /* Mobile First */
 @media (max-width: 480px) {
   body {
-    padding: 0.5rem;
+    /* padding: 0.5rem; */
   }
 }
 
 /* Tablet */
 @media (min-width: 481px) and (max-width: 768px) {
   body {
-    padding: 1rem;
+    /* padding: 1rem; */
   }
 }
 
 /* Desktop */
 @media (min-width: 769px) {
   body {
-    padding: 2rem;
+    /* padding: 2rem; */
   }
 }

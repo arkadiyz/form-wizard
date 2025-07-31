@@ -149,7 +149,6 @@ export default function HomePage() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '2rem 1rem',
         boxSizing: 'border-box',
       }}
     >
@@ -162,7 +161,7 @@ export default function HomePage() {
         onBack={handleBack}
         isLastStep={currentStep === 4}
         isLoading={isSaving}
-        hideFooter={isFormSubmitted} // Hide footer when form is submitted
+        hideFooter={false} // Always show navigation buttons
       >
         {renderCurrentStep()}
       </FormWizard>
