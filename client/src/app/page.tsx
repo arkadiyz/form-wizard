@@ -20,6 +20,7 @@ export default function HomePage() {
   const jobInterestRef = useRef<JobInterestStepRef>(null);
   const notificationsRef = useRef<NotificationsStepRef>(null);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isFormSubmitted, setIsFormSubmitted] = React.useState(false); // New state to track form submission
 
   const stepTitles = [
     t('steps.personalInfo'),
@@ -115,6 +116,10 @@ export default function HomePage() {
     setStep(step);
   };
 
+  const handleSubmissionSuccess = () => {
+    setIsFormSubmitted(true);
+  };
+
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 1:
@@ -124,7 +129,13 @@ export default function HomePage() {
       case 3:
         return <NotificationsStep ref={notificationsRef} />;
       case 4:
-        return <ConfirmationStep ref={confirmationRef} locale="en" />;
+        return (
+          <ConfirmationStep
+            ref={confirmationRef}
+            locale="en"
+            onSubmissionSuccess={handleSubmissionSuccess}
+          />
+        );
       default:
         return null;
     }
@@ -151,6 +162,7 @@ export default function HomePage() {
         onBack={handleBack}
         isLastStep={currentStep === 4}
         isLoading={isSaving}
+        hideFooter={isFormSubmitted} // Hide footer when form is submitted
       >
         {renderCurrentStep()}
       </FormWizard>

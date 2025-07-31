@@ -1,9 +1,9 @@
 .wizardContainer {
   max-width: 900px;
   width: 900px;
-  height: 750px;
-  min-height: 750px;
-  max-height: 750px;
+  height: 900px;
+  min-height: 900px;
+  max-height: 900px;
   background: white;
   border-radius: 1rem;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);

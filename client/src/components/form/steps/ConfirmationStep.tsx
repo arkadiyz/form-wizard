@@ -10,6 +10,7 @@ import styles from './ConfirmationStep.module.css';
 
 interface ConfirmationStepProps {
   locale?: string;
+  onSubmissionSuccess?: () => void; // New callback prop
 }
 
 interface SubmissionState {
@@ -23,7 +24,7 @@ export interface ConfirmationStepRef {
 }
 
 export const ConfirmationStep = forwardRef<ConfirmationStepRef, ConfirmationStepProps>(
-  ({ locale = 'en' }, ref) => {
+  ({ locale = 'en', onSubmissionSuccess }, ref) => {
     const { formData, resetForm } = useFormStore();
     const [submission, setSubmission] = useState<SubmissionState>({
       isLoading: false,
@@ -109,6 +110,9 @@ export const ConfirmationStep = forwardRef<ConfirmationStepRef, ConfirmationStep
 
         await response.json();
         setSubmission({ isLoading: false, isSuccess: true, error: null });
+
+        // Notify parent component about successful submission
+        onSubmissionSuccess?.();
 
         setTimeout(() => {
           resetForm();

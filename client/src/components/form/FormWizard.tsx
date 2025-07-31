@@ -15,6 +15,7 @@ interface FormWizardProps {
   isNextDisabled?: boolean;
   isLastStep?: boolean;
   isLoading?: boolean;
+  hideFooter?: boolean; // New prop to hide footer
   dir?: 'ltr' | 'rtl';
 }
 
@@ -29,6 +30,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
   isNextDisabled = false,
   isLastStep = false,
   isLoading = false,
+  hideFooter = false, // Default to false
   dir = 'ltr',
 }) => {
   return (
@@ -87,7 +89,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       </div>
 
       {/* Fixed Footer with buttons */}
-      {(onNext || onBack) && (
+      {!hideFooter && (onNext || onBack) && (
         <footer className={styles.wizardFooter}>
           <div className={styles.buttonGroup}>
             {onBack && (
