@@ -61,8 +61,23 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
     }, [roleSearchText]);
 
     // Watch for changes - using useMemo to satisfy React Hook rules
-    const categoryIds = useMemo(() => watch('categoryIds') || [], [watch]);
+    const categoryIds = useMemo(() => {
+      const watchedCategoryIds = watch('categoryIds') || [];
+      console.log('🔍 categoryIds watched:', watchedCategoryIds);
+      return watchedCategoryIds;
+    }, [watch]);
     const roleIds = useMemo(() => watch('roleIds') || [], [watch]);
+
+    // Debug: Log form data changes
+    React.useEffect(() => {
+      const currentFormData = watch();
+      console.log('🔍 Form data changed:', {
+        categoryIds: currentFormData.categoryIds,
+        roleIds: currentFormData.roleIds,
+        locationId: currentFormData.locationId,
+        formDataFromStore: formData.jobInterest,
+      });
+    }, [watch, formData.jobInterest]);
 
     // React Query for data fetching
     const {
@@ -420,6 +435,8 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       }
     };
 
+    console.log('rolesLoading ', rolesLoading);
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -461,35 +478,22 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
               control={control}
               render={({ field }) => (
                 <div>
-                  {categoryIds.length > 0 && (
-                    <>
-                      {rolesLoading ? (
-                        <div className={styles.loadingRoles}>
-                          <div className={styles.smallSpinner}></div>
-                          <span>Loading roles...</span>
-                        </div>
-                      ) : rolesError ? (
-                        <div className={styles.errorRoles}>
-                          <span>Failed to load roles</span>
-                        </div>
-                      ) : (
-                        <Autocomplete
-                          label="Job Roles"
-                          placeholder="Type to search roles based on your categories..."
-                          options={roles}
-                          selectedValues={field.value || []}
-                          inputValue={roleSearchText}
-                          onSelectionChange={handleRoleChange}
-                          onSearchChange={handleRoleSearch}
-                          multiSelect
-                          maxSelections={getRoleLimit}
-                          isRequired
-                          error={errors.roleIds?.message}
-                          dir={locale === 'he' ? 'rtl' : 'ltr'}
-                        />
-                      )}
-                    </>
-                  )}
+                  <>
+                    <Autocomplete
+                      label="Job Roles"
+                      placeholder="Type to search roles based on your categories..."
+                      options={roles}
+                      selectedValues={field.value || []}
+                      inputValue={roleSearchText}
+                      onSelectionChange={handleRoleChange}
+                      onSearchChange={handleRoleSearch}
+                      multiSelect
+                      maxSelections={getRoleLimit}
+                      isRequired
+                      error={errors.roleIds?.message}
+                      dir={locale === 'he' ? 'rtl' : 'ltr'}
+                    />
+                  </>
                   {categoryIds.length === 0 && (
                     <div className={styles.roleHint}>
                       Please select job categories first to see available roles

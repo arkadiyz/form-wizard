@@ -2,7 +2,9 @@
 
 import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { useFormStore } from '../../../store/formStore';
+import { referenceDataService } from '../../../services/referenceDataService';
 import { StepHeader } from '../StepHeader';
 import styles from './ConfirmationStep.module.css';
 
@@ -28,6 +30,66 @@ export const ConfirmationStep = forwardRef<ConfirmationStepRef, ConfirmationStep
       isSuccess: false,
       error: null,
     });
+
+    // Load reference data to convert GUIDs to names
+    const { data: categories = [] } = useQuery({
+      queryKey: ['categories'],
+      queryFn: referenceDataService.getCategories,
+    });
+
+    const { data: locations = [] } = useQuery({
+      queryKey: ['locations'],
+      queryFn: referenceDataService.getLocations,
+    });
+
+    const { data: skills = [] } = useQuery({
+      queryKey: ['skills'],
+      queryFn: () => referenceDataService.getSkillsByCategory(),
+    });
+
+    // Load roles based on selected categories
+    const { data: roles = [] } = useQuery({
+      queryKey: ['roles', formData.jobInterest.categoryIds],
+      queryFn: () => {
+        if (!formData.jobInterest.categoryIds?.length) return Promise.resolve([]);
+        return referenceDataService.searchRolesByCategoriesAndText(
+          formData.jobInterest.categoryIds,
+          '',
+        );
+      },
+      enabled: !!formData.jobInterest.categoryIds?.length,
+    });
+
+    // Helper functions to convert GUIDs to names
+    const getCategoryNames = (categoryIds: string[]) => {
+      if (!categoryIds?.length) return 'Not selected';
+      const names = categoryIds
+        .map((id) => categories.find((cat) => cat.value === id)?.label)
+        .filter(Boolean);
+      return names.length > 0 ? names.join(', ') : 'Not selected';
+    };
+
+    const getRoleNames = (roleIds: string[]) => {
+      if (!roleIds?.length) return 'Not selected';
+      const names = roleIds
+        .map((id) => roles.find((role) => role.value === id)?.label)
+        .filter(Boolean);
+      return names.length > 0 ? names.join(', ') : 'Not selected';
+    };
+
+    const getLocationName = (locationId: string | null) => {
+      if (!locationId) return 'Not selected';
+      const location = locations.find((loc) => loc.value === locationId);
+      return location?.label || 'Not selected';
+    };
+
+    const getSkillNames = (skillIds: string[]) => {
+      if (!skillIds?.length) return 'Not selected';
+      const names = skillIds
+        .map((id) => skills.find((skill) => skill.value === id)?.label)
+        .filter(Boolean);
+      return names.length > 0 ? names.join(', ') : 'Not selected';
+    };
 
     const handleSubmit = async () => {
       setSubmission({ isLoading: true, isSuccess: false, error: null });
@@ -156,39 +218,29 @@ export const ConfirmationStep = forwardRef<ConfirmationStepRef, ConfirmationStep
               <div className={styles.dataRow}>
                 <span className={styles.label}>Categories:</span>
                 <span className={styles.value}>
-                  {formData.jobInterest.categoryIds?.length > 0
-                    ? formData.jobInterest.categoryIds.join(', ')
-                    : 'Not selected'}
+                  {getCategoryNames(formData.jobInterest.categoryIds)}
                 </span>
               </div>
               <div className={styles.dataRow}>
                 <span className={styles.label}>Roles:</span>
-                <span className={styles.value}>
-                  {formData.jobInterest.roleIds?.length > 0
-                    ? formData.jobInterest.roleIds.join(', ')
-                    : 'Not selected'}
-                </span>
+                <span className={styles.value}>{getRoleNames(formData.jobInterest.roleIds)}</span>
               </div>
               <div className={styles.dataRow}>
                 <span className={styles.label}>Location:</span>
                 <span className={styles.value}>
-                  {formData.jobInterest.locationId || 'Not selected'}
+                  {getLocationName(formData.jobInterest.locationId)}
                 </span>
               </div>
               <div className={styles.dataRow}>
                 <span className={styles.label}>Mandatory Skills:</span>
                 <span className={styles.value}>
-                  {formData.jobInterest.mandatorySkills?.length > 0
-                    ? formData.jobInterest.mandatorySkills.join(', ')
-                    : 'Not selected'}
+                  {getSkillNames(formData.jobInterest.mandatorySkills)}
                 </span>
               </div>
               <div className={styles.dataRow}>
                 <span className={styles.label}>Advantage Skills:</span>
                 <span className={styles.value}>
-                  {formData.jobInterest.advantageSkills?.length > 0
-                    ? formData.jobInterest.advantageSkills.join(', ')
-                    : 'Not selected'}
+                  {getSkillNames(formData.jobInterest.advantageSkills)}
                 </span>
               </div>
             </div>
