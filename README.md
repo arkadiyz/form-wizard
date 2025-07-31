@@ -74,16 +74,6 @@ npm run dev
 # App will run on: http://localhost:3000
 ```
 
-## 📋 Features
-
-- **Multi-step form wizard** with data persistence
-- **Server-side rendering** for one step (following requirements)
-- **Dynamic role loading** based on selected categories
-- **Real-time validation** with Zod schemas
-- **Responsive design** with CSS modules
-- **State management** with Zustand
-- **API integration** with React Query
-
 ## 🛠 Tech Stack
 
 **Frontend:**
@@ -120,13 +110,7 @@ FormWizard/
 └── form_wizard_db.bak    # Database backup
 ```
 
-## 🔧 Development Notes
 
-- The **Confirmation step** is server-side rendered (SSR) as per requirements
-- Form data is automatically saved between steps
-- Categories and roles have dynamic relationships
-- Skills are split into mandatory/advantage categories
-- Real-time validation prevents invalid selections
 
 ## 📝 License
 
