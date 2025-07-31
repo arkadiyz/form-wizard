@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Portal } from './Portal';
 import styles from './Chips.module.css';
 
 export interface ChipOption {
@@ -39,6 +40,7 @@ export const Chips: React.FC<ChipsProps> = ({
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -50,18 +52,27 @@ export const Chips: React.FC<ChipsProps> = ({
     const filtered = options.filter((option) => !selectedValues.includes(option.value));
 
     if (inputValue.length === 0) {
-      return filtered; // Show all available options when no input
+      // Show only first 10 options when no input to reduce initial scroll
+      return filtered.slice(0, 10);
     }
 
+    // When user types, show more relevant results
     const searchFiltered = filtered.filter((option) =>
       option.label.toLowerCase().includes(inputValue.toLowerCase()),
     );
-    return searchFiltered;
+
+    // Limit to 8 results to fit in the smaller dropdown
+    return searchFiltered.slice(0, 8);
   }, [options, selectedValues, inputValue]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      // בדיקה מורחבת יותר - גם Portal וגם container מקורי
+      const portalElement = document.getElementById('portal-root');
+      const isClickInPortal = portalElement?.contains(event.target as Node);
+      const isClickInContainer = containerRef.current?.contains(event.target as Node);
+      
+      if (!isClickInContainer && !isClickInPortal) {
         setIsOpen(false);
       }
     };
@@ -105,6 +116,66 @@ export const Chips: React.FC<ChipsProps> = ({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
+  }, [isOpen]);
+
+  // Calculate dropdown position when it opens
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const updatePosition = () => {
+        if (containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          setDropdownPosition({
+            top: rect.bottom + window.scrollY + 4, // 4px gap
+            left: rect.left + window.scrollX,
+            width: rect.width,
+          });
+        }
+      };
+
+      // עדכון מיקום ראשוני
+      updatePosition();
+
+      // סגירת הפורטל בגלילה - גם חיצונית וגם פנימית
+      const handleScroll = () => {
+        setIsOpen(false);
+        setSelectedIndex(-1);
+      };
+
+      // סגירת הפורטל בשינוי גודל חלון
+      const handleResize = () => {
+        setIsOpen(false);
+        setSelectedIndex(-1);
+      };
+
+      // האזנה לגלילה של החלון הראשי
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      window.addEventListener('resize', handleResize);
+
+      // האזנה לגלילה פנימית של הטופס
+      const formContent = document.querySelector('.formContent, [class*="formContent"]');
+      if (formContent) {
+        formContent.addEventListener('scroll', handleScroll, { passive: true });
+      }
+
+      // האזנה לכל גלילה אפשרית בדף
+      const scrollableElements = document.querySelectorAll('[style*="overflow"], [class*="scroll"], [class*="overflow"]');
+      scrollableElements.forEach((element) => {
+        element.addEventListener('scroll', handleScroll, { passive: true });
+      });
+
+      return () => {
+        window.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('resize', handleResize);
+        
+        if (formContent) {
+          formContent.removeEventListener('scroll', handleScroll);
+        }
+
+        scrollableElements.forEach((element) => {
+          element.removeEventListener('scroll', handleScroll);
+        });
+      };
+    }
   }, [isOpen]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -275,26 +346,36 @@ export const Chips: React.FC<ChipsProps> = ({
 
       {/* Move suggestions outside the container */}
       {isOpen && displayOptions.length > 0 && (
-        <div className={styles.suggestions}>
-          <ul className={styles.optionsList}>
-            {displayOptions.map((option, index) => (
-              <li
-                key={option.value}
-                className={`${styles.option} ${option.disabled ? styles.disabled : ''} ${
-                  selectedIndex === index ? styles.keyboardSelected : ''
-                }`}
-                onClick={() => !option.disabled && addChip(option.value)}
-              >
-                <span className={styles.optionLabel}>{option.label}</span>
-                {option.category && (
-                  <span className={`${styles.optionBadge} ${styles[option.category]}`}>
-                    {option.category}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <Portal>
+          <div 
+            className={styles.suggestions} 
+            style={{ 
+              position: 'fixed',
+              top: `${dropdownPosition.top}px`, 
+              left: `${dropdownPosition.left}px`, 
+              width: `${dropdownPosition.width}px` 
+            }}
+          >
+            <ul className={styles.optionsList}>
+              {displayOptions.map((option, index) => (
+                <li
+                  key={option.value}
+                  className={`${styles.option} ${option.disabled ? styles.disabled : ''} ${
+                    selectedIndex === index ? styles.keyboardSelected : ''
+                  }`}
+                  onClick={() => !option.disabled && addChip(option.value)}
+                >
+                  <span className={styles.optionLabel}>{option.label}</span>
+                  {option.category && (
+                    <span className={`${styles.optionBadge} ${styles[option.category]}`}>
+                      {option.category}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Portal>
       )}
 
       {hint && !showError && <span className={styles.hint}>{hint}</span>}

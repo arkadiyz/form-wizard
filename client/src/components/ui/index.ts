@@ -18,3 +18,5 @@ export type { ChipsProps, ChipOption } from './Chips';
 
 export { Checkbox } from './Checkbox';
 export type { CheckboxProps } from './Checkbox';
+
+export { Portal } from './Portal';

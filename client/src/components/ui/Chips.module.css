@@ -147,21 +147,17 @@
 }
 
 .suggestions {
-  position: absolute;
-  top: 75%;
-  left: 0;
-  right: 0;
-  z-index: 9999;
+  position: fixed; /* שינוי מ-absolute ל-fixed עבור Portal */
+  z-index: 1000; /* z-index גבוה יותר כיוון שעכשיו זה ב-Portal */
   background: #ffffff;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  margin-top: 0.25rem; /* Small gap between input and dropdown */
-  max-height: 12rem;
+  max-height: 6rem;
   overflow-y: auto;
-  min-width: 100%; /* Match the width of the container */
+  pointer-events: auto; /* אפשר אינטראקציה ב-Portal */
 }
 
 .optionsList {
