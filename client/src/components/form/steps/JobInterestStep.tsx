@@ -122,7 +122,7 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       const categoryCount = categoryIds.length;
 
       if (categoryCount === 0) {
-        return 10; // Allow selecting roles even without categories
+        return 0;
       }
 
       if (categoryCount === 1) {
@@ -131,7 +131,7 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
         return 4;
       }
 
-      return 10; // Default fallback
+      return 0;
     }, [categoryIds]);
 
     const {
@@ -139,13 +139,15 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       isLoading: rolesLoading,
       error: rolesError,
     } = useQuery({
-      queryKey: ['roles', debouncedRoleSearchText],
+      queryKey: ['roles', categoryIds, debouncedRoleSearchText],
       queryFn: () => {
+        if (categoryIds.length === 0) return Promise.resolve([]);
         return referenceDataService.searchRolesByCategoriesAndText(
           categoryIds,
           debouncedRoleSearchText,
         );
       },
+      enabled: categoryIds.length > 0,
       retry: 2,
       staleTime: 5 * 60 * 1000,
     });
@@ -180,7 +182,17 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       const limit = getRoleLimit;
 
       if (selectedRoles.length > limit) {
-        let message = `You can select up to ${limit} roles (currently ${selectedRoles.length})`;
+        const categoryCount = categoryIds.length;
+        let message = '';
+
+        if (categoryCount === 1) {
+          message = `With 1 category selected, you can choose up to 3 roles (currently ${selectedRoles.length})`;
+        } else if (categoryCount === 2) {
+          message = `With 2 categories selected, you can choose up to 2 roles from each category (max 4 total, currently ${selectedRoles.length})`;
+        } else {
+          message = `You can select up to ${limit} roles with your current categories (currently ${selectedRoles.length})`;
+        }
+
         setError('roleIds', { message });
         return false;
       } else {
@@ -375,20 +387,24 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
               name="roleIds"
               control={control}
               render={({ field }) => (
-                <Autocomplete
-                  label="Job Roles"
-                  placeholder="Type to search roles..."
-                  options={roles}
-                  selectedValues={field.value || []}
-                  inputValue={roleSearchText}
-                  onSelectionChange={handleRoleChange}
-                  onSearchChange={handleRoleSearch}
-                  multiSelect
-                  maxSelections={getRoleLimit || 10}
-                  isRequired
-                  error={errors.roleIds?.message}
-                  dir={locale === 'he' ? 'rtl' : 'ltr'}
-                />
+                <div>
+                  <>
+                    <Autocomplete
+                      label="Job Roles"
+                      placeholder="Type to search roles based on your categories..."
+                      options={roles}
+                      selectedValues={field.value || []}
+                      inputValue={roleSearchText}
+                      onSelectionChange={handleRoleChange}
+                      onSearchChange={handleRoleSearch}
+                      multiSelect
+                      maxSelections={getRoleLimit}
+                      isRequired
+                      error={errors.roleIds?.message}
+                      dir={locale === 'he' ? 'rtl' : 'ltr'}
+                    />
+                  </>
+                </div>
               )}
             />
 

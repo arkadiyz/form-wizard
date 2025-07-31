@@ -124,7 +124,7 @@ export default function HomePage() {
       case 3:
         return <NotificationsStep ref={notificationsRef} />;
       case 4:
-        return <ConfirmationStep ref={confirmationRef} />;
+        return <ConfirmationStep locale="en" />;
       default:
         return null;
     }
