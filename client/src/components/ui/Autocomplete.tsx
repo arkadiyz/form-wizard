@@ -15,7 +15,10 @@ export interface AutocompleteProps {
   placeholder?: string;
   options: AutocompleteOption[];
   selectedValues?: string[]; // הוספת prop לערכים שנבחרו
+  inputValue?: string;
   onSelectionChange?: (value: string | string[]) => void;
+  onSearchChange?: (searchText: string) => void;
+  onFocus?: () => void;
   isRequired?: boolean;
   error?: string;
   hint?: string;
@@ -37,7 +40,10 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
   placeholder = 'Type to search...',
   options,
   selectedValues: controlledSelectedValues,
+  inputValue: controlledInputValue,
   onSelectionChange,
+  onSearchChange,
+  onFocus,
   isRequired = false,
   error,
   hint,
@@ -47,7 +53,7 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
   isDisabled = false,
   customValidation,
 }) => {
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(controlledInputValue || '');
   const [isOpen, setIsOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -141,6 +147,9 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
     const newValue = e.target.value;
     setInputValue(newValue);
 
+    // Call the external onSearchChange handler if provided
+    onSearchChange?.(newValue);
+
     if (multiSelect) {
       // In multiSelect, always show options when typing or when there are available options
       setIsOpen(true);
@@ -157,9 +166,14 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
   };
 
   const handleInputFocus = () => {
+    console.log('🎯 Autocomplete handleInputFocus called!'); // Debug log
+
     if (!hasInteracted) {
       setHasInteracted(true);
     }
+
+    // Call the external onFocus handler if provided
+    onFocus?.();
 
     if (multiSelect) {
       // In multiSelect, always show available options when focused

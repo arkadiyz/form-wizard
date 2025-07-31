@@ -34,6 +34,7 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
     const { formData, updateJobInterest, saveCurrentStep } = useFormStore();
     const [roleSearchText, setRoleSearchText] = useState('');
     const [debouncedRoleSearchText, setDebouncedRoleSearchText] = useState('');
+    const [shouldLoadRoles, setShouldLoadRoles] = useState(false); // New state to control when to load roles
 
     const {
       control,
@@ -122,39 +123,67 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       const categoryCount = categoryIds.length;
 
       if (categoryCount === 0) {
-        return 0;
+        return 0; // No roles allowed without categories
       }
 
       if (categoryCount === 1) {
-        return 3;
+        return 3; // Up to 3 roles with 1 category
       } else if (categoryCount === 2) {
-        return 4;
+        return 4; // Up to 4 roles with 2 categories (2 from each)
+      } else if (categoryCount === 3) {
+        return 6; // Up to 6 roles with 3 categories (including Student/No Experience)
       }
 
-      return 0;
+      return 0; // Default - shouldn't happen
     }, [categoryIds]);
 
     const {
       data: roles = [],
       isLoading: rolesLoading,
       error: rolesError,
+      refetch: refetchRoles,
     } = useQuery({
       queryKey: ['roles', categoryIds, debouncedRoleSearchText],
       queryFn: () => {
-        if (categoryIds.length === 0) return Promise.resolve([]);
+        console.log('🔍 Fetching roles with categoryIds:', categoryIds);
         return referenceDataService.searchRolesByCategoriesAndText(
           categoryIds,
           debouncedRoleSearchText,
         );
       },
-      enabled: categoryIds.length > 0,
       retry: 2,
-      staleTime: 5 * 60 * 1000,
+      staleTime: 0, // Make data stale immediately so it refetches when needed
+      refetchOnWindowFocus: false, // Don't refetch on window focus
+      enabled: shouldLoadRoles, // Simplified - just check if user wants to load roles
     });
 
-    const handleRoleSearch = useCallback((searchText: string) => {
-      setRoleSearchText(searchText);
-    }, []);
+    const handleRoleSearch = useCallback(
+      (searchText: string) => {
+        setRoleSearchText(searchText);
+        // Trigger roles loading when user starts typing
+        if (!shouldLoadRoles) {
+          setShouldLoadRoles(true);
+        }
+      },
+      [shouldLoadRoles],
+    );
+
+    // Function to handle when user focuses on the roles field
+    const handleRolesFocus = useCallback(() => {
+      console.log(
+        '🎯 handleRolesFocus called, shouldLoadRoles:',
+        shouldLoadRoles,
+        'categoryIds:',
+        categoryIds,
+      );
+
+      // Always trigger loading when user focuses on the field, especially if categories exist
+      if (categoryIds.length > 0) {
+        setShouldLoadRoles(true);
+        // Force refetch by invalidating the cache for the current categoryIds
+        // This ensures fresh data is loaded based on current categories
+      }
+    }, [categoryIds]);
 
     const {
       data: locations = [],
@@ -179,20 +208,31 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
     });
 
     const validateRoles = (selectedRoles: string[]) => {
-      const limit = getRoleLimit;
+      const currentCategoryIds = watch('categoryIds') || []; // Get fresh categoryIds from form
+      const categoryCount = currentCategoryIds.length;
+
+      let limit = 0;
+      if (categoryCount === 1) {
+        limit = 3;
+      } else if (categoryCount === 2) {
+        limit = 4;
+      } else if (categoryCount === 3) {
+        limit = 6;
+      }
+
+      console.log(
+        '🔢 validateRoles - limit:',
+        limit,
+        'categoryCount:',
+        categoryCount,
+        'currentCategoryIds:',
+        currentCategoryIds,
+        'selectedRoles:',
+        selectedRoles.length,
+      );
 
       if (selectedRoles.length > limit) {
-        const categoryCount = categoryIds.length;
-        let message = '';
-
-        if (categoryCount === 1) {
-          message = `With 1 category selected, you can choose up to 3 roles (currently ${selectedRoles.length})`;
-        } else if (categoryCount === 2) {
-          message = `With 2 categories selected, you can choose up to 2 roles from each category (max 4 total, currently ${selectedRoles.length})`;
-        } else {
-          message = `You can select up to ${limit} roles with your current categories (currently ${selectedRoles.length})`;
-        }
-
+        let message = `You can select up to ${limit} roles with your current categories (currently ${selectedRoles.length})`;
         setError('roleIds', { message });
         return false;
       } else {
@@ -251,9 +291,17 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       const newCategoryIds = Array.isArray(value) ? value : [value];
       setValue('categoryIds', newCategoryIds);
 
-      const currentRoles = roleIds;
-      if (currentRoles.length > 0) {
-        setTimeout(() => validateRoles(currentRoles), 100);
+      // Clear roles when categories change since they might not be relevant anymore
+      if (newCategoryIds.length === 0) {
+        // If no categories selected, clear all roles
+        setValue('roleIds', []);
+        clearErrors('roleIds');
+      } else {
+        // If categories exist, validate current roles against new limit
+        const currentRoles = roleIds;
+        if (currentRoles.length > 0) {
+          setTimeout(() => validateRoles(currentRoles), 100);
+        }
       }
     };
 
@@ -397,6 +445,7 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
                       inputValue={roleSearchText}
                       onSelectionChange={handleRoleChange}
                       onSearchChange={handleRoleSearch}
+                      onFocus={handleRolesFocus} // Add onFocus handler
                       multiSelect
                       maxSelections={getRoleLimit}
                       isRequired
