@@ -33,10 +33,8 @@ export const NotificationsStep = forwardRef<NotificationsStepRef, NotificationsS
       onCancel: () => {},
     });
 
-    // Handle Email Toggle with confirmation
     const handleEmailToggle = (checked: boolean) => {
       if (!checked && formData.notifications.email) {
-        // Show confirmation dialog when turning OFF
         setConfirmDialog({
           isOpen: true,
           type: 'email',
@@ -49,20 +47,16 @@ export const NotificationsStep = forwardRef<NotificationsStepRef, NotificationsS
           },
         });
       } else {
-        // Turn ON immediately (optimistic update)
         updateNotifications({ email: checked });
       }
     };
 
-    // Handle Phone Toggle with complex logic
     const handlePhoneToggle = (checked: boolean) => {
       if (!checked && formData.notifications.phone) {
-        // Show confirmation dialog when turning OFF
         setConfirmDialog({
           isOpen: true,
           type: 'phone',
           onConfirm: () => {
-            // Turn OFF phone and ALL sub-checkboxes
             updateNotifications({
               phone: false,
               call: false,
@@ -76,7 +70,6 @@ export const NotificationsStep = forwardRef<NotificationsStepRef, NotificationsS
           },
         });
       } else if (checked) {
-        // Turn ON phone and ALL sub-checkboxes (optimistic update)
         updateNotifications({
           phone: true,
           call: true,
@@ -84,7 +77,6 @@ export const NotificationsStep = forwardRef<NotificationsStepRef, NotificationsS
           whatsapp: true,
         });
 
-        // Scroll to show the new sub-options after animation
         setTimeout(() => {
           const subOptionsElement = document.querySelector(`.${styles.subOptions}`);
           if (subOptionsElement) {
@@ -93,23 +85,20 @@ export const NotificationsStep = forwardRef<NotificationsStepRef, NotificationsS
               block: 'nearest',
             });
           }
-        }, 100); // Wait for animation to complete
+        }, 100);
       }
     };
 
-    // Handle Sub-checkbox changes
     const handleSubCheckboxChange = (type: 'call' | 'sms' | 'whatsapp', checked: boolean) => {
       const newNotifications = {
         ...formData.notifications,
         [type]: checked,
       };
 
-      // Check if ALL sub-checkboxes will be unchecked
       const allSubsUnchecked =
         !newNotifications.call && !newNotifications.sms && !newNotifications.whatsapp;
 
       if (allSubsUnchecked) {
-        // If all subs are unchecked, turn OFF phone toggle too
         updateNotifications({
           [type]: checked,
           phone: false,
@@ -119,32 +108,18 @@ export const NotificationsStep = forwardRef<NotificationsStepRef, NotificationsS
       }
     };
 
-    // Expose save and isValid methods to parent component
     useImperativeHandle(ref, () => ({
       save: async (): Promise<boolean> => {
         try {
-          console.log(
-            '🟣 NotificationsStep: Saving notification preferences:',
-            formData.notifications,
-          );
-
-          // The notifications are already updated in the store via updateNotifications
-          // So we just need to save the current state to the server
           const success = await saveCurrentStep();
-          console.log('🟣 NotificationsStep: Save result:', success);
           return success;
         } catch (error) {
-          console.error('❌ NotificationsStep: Error saving:', error);
           return false;
         }
       },
       isValid: (): boolean => {
-        // For notifications step, we can consider it always valid since notifications are optional
-        // But we could require at least one notification method if needed
         const hasAnyNotification = formData.notifications.email || formData.notifications.phone;
-        console.log('🔍 NotificationsStep: Has any notification enabled:', hasAnyNotification);
 
-        // For now, let's make it always valid (notifications are optional)
         return true;
       },
     }));

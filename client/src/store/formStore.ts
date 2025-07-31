@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { formService } from '../services/form.service';
 
-// Types for form data
 export interface PersonalInfo {
   firstName: string;
   lastName: string;
@@ -33,7 +32,6 @@ export interface FormData {
 }
 
 interface FormState {
-  // Data
   currentStep: number;
   formData: FormData;
   validationErrors: Record<string, string>;
@@ -41,7 +39,6 @@ interface FormState {
   isLoading: boolean;
   isSaving: boolean;
 
-  // Actions
   setStep: (step: number) => void;
   updatePersonalInfo: (data: Partial<PersonalInfo>) => void;
   updateJobInterest: (data: Partial<JobInterest>) => void;
@@ -50,7 +47,6 @@ interface FormState {
   clearValidationError: (field: string) => void;
   resetForm: () => void;
 
-  // New actions for server integration
   saveCurrentStep: () => Promise<boolean>;
   loadFormState: () => Promise<void>;
   generateSessionId: () => void;
@@ -90,25 +86,16 @@ export const useFormStore = create<FormState>()(
       isSaving: false,
 
       setStep: (step) => {
-        console.log('🔄 STORE setStep called, changing from:', get().currentStep, 'to:', step);
         set({ currentStep: step });
       },
 
       updatePersonalInfo: (data) => {
-        console.log('🟢 STORE updatePersonalInfo called with:', data);
-        console.log('🟢 Current store before update:', get().formData.personalInfo);
-
-        set((state) => {
-          const newState = {
-            ...state,
-            formData: {
-              ...state.formData,
-              personalInfo: { ...state.formData.personalInfo, ...data },
-            },
-          };
-          console.log('🟢 New store state after update:', newState.formData.personalInfo);
-          return newState;
-        });
+        set((state) => ({
+          formData: {
+            ...state.formData,
+            personalInfo: { ...state.formData.personalInfo, ...data },
+          },
+        }));
       },
 
       updateJobInterest: (data) =>
@@ -152,50 +139,30 @@ export const useFormStore = create<FormState>()(
       },
 
       saveCurrentStep: async () => {
-        console.log('🔵 FormStore: saveCurrentStep called');
         const state = get();
-        console.log('🔵 Current state:', {
-          sessionId: state.sessionId,
-          currentStep: state.currentStep,
-        });
 
         if (!state.sessionId) {
-          console.log('🔵 No sessionId, generating new one...');
           state.generateSessionId();
         }
 
         set({ isSaving: true });
-        console.log('🔵 Set isSaving to true');
 
         try {
-          console.log('🔵 Calling formService.saveFormState...');
-          console.log('🔵 Request data:', {
-            sessionId: state.sessionId,
-            formData: state.formData,
-            currentStep: state.currentStep,
-          });
-
           const response = await formService.saveFormState({
             sessionId: state.sessionId,
             formData: state.formData,
             currentStep: state.currentStep,
           });
 
-          console.log('🔵 FormService response:', response);
-
           if (response.success) {
-            console.log('🔵 Form state saved successfully');
             return true;
           } else {
-            console.error('🔵 Failed to save form state:', response.message);
             return false;
           }
         } catch (error) {
-          console.error('🔵 Error saving form state:', error);
           return false;
         } finally {
           set({ isSaving: false });
-          console.log('🔵 Set isSaving to false');
         }
       },
 
@@ -216,10 +183,9 @@ export const useFormStore = create<FormState>()(
               formData: response.data.formData,
               currentStep: response.data.currentStep,
             });
-            console.log('Form state loaded successfully');
           }
         } catch (error) {
-          console.error('Error loading form state:', error);
+          // Silent fail
         } finally {
           set({ isLoading: false });
         }

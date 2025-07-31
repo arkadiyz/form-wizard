@@ -130,9 +130,6 @@ public class FormStateService : IFormStateService
 
     #region XML Conversion Methods
 
-    /// <summary>
-    /// Convert FormDataDto to XML string for database storage
-    /// </summary>
     private string ConvertFormDataToXml(FormDataDto formData)
     {
         var doc = new XDocument(
@@ -176,9 +173,6 @@ public class FormStateService : IFormStateService
         return doc.ToString();
     }
 
-    /// <summary>
-    /// Convert XML string from database back to FormDataDto
-    /// </summary>
     private FormDataDto ConvertXmlToFormData(string xmlString)
     {
         var doc = XDocument.Parse(xmlString);
@@ -226,7 +220,7 @@ public class FormStateService : IFormStateService
             notifications = new NotificationDto
             {
                 id = Guid.NewGuid(),
-                userId = Guid.Empty, // יעודכן בהמשך
+                userId = Guid.Empty,
                 isEmailEnabled = bool.TryParse(notifications?.Element("IsEmailEnabled")?.Value, out var email) && email,
                 isPhoneEnabled = bool.TryParse(notifications?.Element("IsPhoneEnabled")?.Value, out var phone) && phone,
                 isCallEnabled = bool.TryParse(notifications?.Element("IsCallEnabled")?.Value, out var call) && call,

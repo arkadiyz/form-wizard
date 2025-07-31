@@ -48,7 +48,6 @@ export const referenceDataService = {
         searchText: searchText.trim(),
       };
 
-      console.log('🔍 Searching roles with:', requestBody);
       const response = await httpService.post('/reference/roles/search', requestBody);
       return response.data.map((item: ApiResponseItem) => ({
         id: item.id,
@@ -57,7 +56,6 @@ export const referenceDataService = {
         categoryId: item.categoryId || '',
       }));
     } catch (error) {
-      console.error('❌ Error searching roles:', error);
       throw new Error('Failed to search roles');
     }
   },
@@ -73,7 +71,6 @@ export const referenceDataService = {
         value: item.id,
       }));
     } catch (error) {
-      console.error('Error fetching categories:', error);
       throw new Error('Failed to load categories');
     }
   },
@@ -81,13 +78,9 @@ export const referenceDataService = {
   // Get roles by multiple categories
   getRolesByCategories: async (categoryIds: string[]): Promise<RoleOption[]> => {
     try {
-      console.log('🔍 getRolesByCategories called with:', categoryIds);
-
       // If no categories provided, get all roles
       if (categoryIds.length === 0) {
-        console.log('🔍 No categories provided, getting all roles');
         const response = await httpService.get<{ data: ApiResponseItem[] }>('/reference/roles');
-        console.log('📥 Got all roles response:', response.data.length);
 
         return response.data.map((item: ApiResponseItem) => ({
           id: item.id,
@@ -99,19 +92,16 @@ export const referenceDataService = {
 
       // Call API for each category and combine results
       const rolePromises = categoryIds.map((categoryId) => {
-        console.log('🔍 Making API call for category:', categoryId);
         return httpService.get<{ data: ApiResponseItem[] }>(`/reference/roles/${categoryId}`);
       });
 
       const responses = await Promise.all(rolePromises);
-      console.log('📥 Got responses:', responses.length);
 
       // Combine all roles and remove duplicates
       const allRoles: RoleOption[] = [];
       const seenIds = new Set<string>();
 
       responses.forEach((response, index) => {
-        console.log(`📥 Response ${index} has ${response.data.length} roles`);
         response.data.forEach((item: ApiResponseItem) => {
           if (!seenIds.has(item.id)) {
             seenIds.add(item.id);
@@ -125,10 +115,8 @@ export const referenceDataService = {
         });
       });
 
-      console.log('📤 Final combined roles:', allRoles.length);
       return allRoles;
     } catch (error) {
-      console.error('❌ Error fetching roles for multiple categories:', error);
       throw new Error('Failed to load roles');
     }
   },
@@ -147,7 +135,6 @@ export const referenceDataService = {
         categoryId: item.categoryId || categoryId,
       }));
     } catch (error) {
-      console.error('Error fetching roles:', error);
       throw new Error('Failed to load roles');
     }
   },
@@ -163,7 +150,6 @@ export const referenceDataService = {
         value: item.id,
       }));
     } catch (error) {
-      console.error('Error fetching locations:', error);
       throw new Error('Failed to load locations');
     }
   },
@@ -171,13 +157,8 @@ export const referenceDataService = {
   // Get skills by category
   getSkillsByCategory: async (skillCategoryId?: string): Promise<SkillOption[]> => {
     try {
-      // Debug: let's see what URL we're calling and what we get back
       const url = skillCategoryId ? `/reference/skills/${skillCategoryId}` : '/reference/skills';
-      console.log('🔍 Calling skills API:', url);
-
       const response = await httpService.get<{ data: ApiResponseItem[] }>(url);
-      console.log('📥 Skills API response:', response);
-      console.log('📥 First skill example:', response.data[0]);
 
       const mappedSkills = response.data.map((item: ApiResponseItem) => ({
         id: item.id,
@@ -187,12 +168,8 @@ export const referenceDataService = {
         skillCategoryId: item.skillCategoryId,
       }));
 
-      console.log('📤 Mapped skills example:', mappedSkills[0]);
-      console.log('📊 Categories found:', [...new Set(response.data.map((s) => s.category))]);
-
       return mappedSkills;
     } catch (error) {
-      console.error('Error fetching skills:', error);
       throw new Error('Failed to load skills');
     }
   },

@@ -29,14 +29,8 @@ export default function HomePage() {
   ];
 
   const handleNext = async () => {
-    console.log('🟡 handleNext clicked, currentStep:', currentStep);
-
     if (currentStep === 1 && personalInfoRef.current) {
-      console.log('🟡 In step 1, checking validity...');
-
-      // בדוק שהטופס תקין
       const isValid = personalInfoRef.current.isValid();
-      console.log('🟡 Form is valid:', isValid);
 
       if (!isValid) {
         alert('Please complete all required fields correctly');
@@ -44,34 +38,22 @@ export default function HomePage() {
       }
 
       setIsSaving(true);
-      console.log('🟡 Starting to save...');
 
       try {
-        // שמור את הנתונים
-        console.log('🟡 Calling personalInfoRef.current.save()...');
         const success = await personalInfoRef.current.save();
-        console.log('🟡 Save result:', success);
 
         if (success) {
-          console.log('🟢 Save successful, moving to next step');
           setStep(currentStep + 1);
         } else {
-          console.log('🔴 Save failed');
           alert('Failed to save data. Please try again.');
         }
       } catch (error) {
-        console.error('🔴 Error saving:', error);
         alert('An error occurred while saving. Please try again.');
       } finally {
         setIsSaving(false);
-        console.log('🟡 Finished saving process');
       }
     } else if (currentStep === 2 && jobInterestRef.current) {
-      console.log('🟡 In step 2, checking validity...');
-
-      // בדוק שהטופס תקין
       const isValid = jobInterestRef.current.isValid();
-      console.log('🟡 Form is valid:', isValid);
 
       if (!isValid) {
         alert('Please complete all required fields correctly');
@@ -79,34 +61,22 @@ export default function HomePage() {
       }
 
       setIsSaving(true);
-      console.log('🟡 Starting to save...');
 
       try {
-        // שמור את הנתונים
-        console.log('🟡 Calling jobInterestRef.current.save()...');
         const success = await jobInterestRef.current.save();
-        console.log('🟡 Save result:', success);
 
         if (success) {
-          console.log('🟢 Save successful, moving to next step');
           setStep(currentStep + 1);
         } else {
-          console.log('🔴 Save failed');
           alert('Failed to save data. Please try again.');
         }
       } catch (error) {
-        console.error('🔴 Error saving:', error);
         alert('An error occurred while saving. Please try again.');
       } finally {
         setIsSaving(false);
-        console.log('🟡 Finished saving process');
       }
     } else if (currentStep === 3 && notificationsRef.current) {
-      console.log('🟡 In step 3, checking validity...');
-
-      // בדוק שהטופס תקין
       const isValid = notificationsRef.current.isValid();
-      console.log('🟡 Form is valid:', isValid);
 
       if (!isValid) {
         alert('Please complete all required fields correctly');
@@ -114,33 +84,23 @@ export default function HomePage() {
       }
 
       setIsSaving(true);
-      console.log('🟡 Starting to save...');
 
       try {
-        // שמור את הנתונים
-        console.log('🟡 Calling notificationsRef.current.save()...');
         const success = await notificationsRef.current.save();
-        console.log('🟡 Save result:', success);
 
         if (success) {
-          console.log('🟢 Save successful, moving to next step');
           setStep(currentStep + 1);
         } else {
-          console.log('🔴 Save failed');
           alert('Failed to save data. Please try again.');
         }
       } catch (error) {
-        console.error('🔴 Error saving:', error);
         alert('An error occurred while saving. Please try again.');
       } finally {
         setIsSaving(false);
-        console.log('🟡 Finished saving process');
       }
     } else if (currentStep === 4) {
-      // If we're on confirmation step, submit the form
       confirmationRef.current?.handleSubmit();
     } else if (currentStep < 4) {
-      console.log('🟡 Moving to next step without saving');
       setStep(currentStep + 1);
     }
   };

@@ -35,7 +35,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
     const [roleSearchText, setRoleSearchText] = useState('');
     const [debouncedRoleSearchText, setDebouncedRoleSearchText] = useState('');
 
-    // React Hook Form setup
     const {
       control,
       handleSubmit,
@@ -51,35 +50,17 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       mode: 'onBlur',
     });
 
-    // Debounce the search text
     useEffect(() => {
       const timer = setTimeout(() => {
         setDebouncedRoleSearchText(roleSearchText);
-      }, 300); // 300ms debounce
+      }, 300);
 
       return () => clearTimeout(timer);
     }, [roleSearchText]);
 
-    // Watch for changes - using useMemo to satisfy React Hook rules
-    const categoryIds = useMemo(() => {
-      const watchedCategoryIds = watch('categoryIds') || [];
-      console.log('🔍 categoryIds watched:', watchedCategoryIds);
-      return watchedCategoryIds;
-    }, [watch]);
+    const categoryIds = useMemo(() => watch('categoryIds') || [], [watch]);
     const roleIds = useMemo(() => watch('roleIds') || [], [watch]);
 
-    // Debug: Log form data changes
-    React.useEffect(() => {
-      const currentFormData = watch();
-      console.log('🔍 Form data changed:', {
-        categoryIds: currentFormData.categoryIds,
-        roleIds: currentFormData.roleIds,
-        locationId: currentFormData.locationId,
-        formDataFromStore: formData.jobInterest,
-      });
-    }, [watch, formData.jobInterest]);
-
-    // React Query for data fetching
     const {
       data: categories = [],
       isLoading: categoriesLoading,
@@ -91,7 +72,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       staleTime: 5 * 60 * 1000,
     });
 
-    // Get the actual category objects to check names - moved after categories are loaded
     const getSpecialCategoryIds = useMemo(() => {
       if (!categories || categories.length === 0) return { studentId: null, noExpId: null };
 
@@ -108,13 +88,11 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       };
     }, [categories]);
 
-    // Calculate dynamic category limit and validation
     const getCategoryValidation = useMemo(() => {
       const { studentId, noExpId } = getSpecialCategoryIds;
       const hasStudentExperience = studentId && categoryIds.includes(studentId);
       const hasNoExperience = noExpId && categoryIds.includes(noExpId);
 
-      // If user already selected one of the special categories, allow up to 3 total
       if (hasStudentExperience || hasNoExperience) {
         return {
           maxSelections: 3,
@@ -125,16 +103,14 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
         };
       }
 
-      // If user has exactly 2 regular categories, they can still add a special category
       if (categoryIds.length === 2 && !hasStudentExperience && !hasNoExperience) {
         return {
-          maxSelections: 3, // Allow them to add the special category as 3rd
+          maxSelections: 3,
           canAddMore: true,
           message: 'You can add Student or No Experience as a 3rd category',
         };
       }
 
-      // Regular categories - can select up to 2
       return {
         maxSelections: 2,
         canAddMore: categoryIds.length < 2,
@@ -142,24 +118,22 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       };
     }, [categoryIds, getSpecialCategoryIds]);
 
-    // Calculate dynamic role limits based on categories
     const getRoleLimit = useMemo(() => {
       const categoryCount = categoryIds.length;
 
       if (categoryCount === 0) {
-        return 0; // No categories selected
+        return 0;
       }
 
       if (categoryCount === 1) {
-        return 3; // 1 category = up to 3 roles
+        return 3;
       } else if (categoryCount === 2) {
-        return 4; // 2 categories = up to 2 roles from each = 4 total
+        return 4;
       }
 
       return 0;
     }, [categoryIds]);
 
-    // Use dynamic search for roles instead of loading all roles upfront
     const {
       data: roles = [],
       isLoading: rolesLoading,
@@ -168,10 +142,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       queryKey: ['roles', categoryIds, debouncedRoleSearchText],
       queryFn: () => {
         if (categoryIds.length === 0) return Promise.resolve([]);
-        console.log('🔍 Calling searchRolesByCategoriesAndText with:', {
-          categoryIds,
-          debouncedRoleSearchText,
-        });
         return referenceDataService.searchRolesByCategoriesAndText(
           categoryIds,
           debouncedRoleSearchText,
@@ -182,21 +152,9 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       staleTime: 5 * 60 * 1000,
     });
 
-    // Callback for role search
     const handleRoleSearch = useCallback((searchText: string) => {
       setRoleSearchText(searchText);
     }, []);
-
-    // Debug: Log roles data when it changes
-    React.useEffect(() => {
-      console.log('📊 Roles data updated:', {
-        rolesCount: roles.length,
-        roles: roles.slice(0, 3), // Show first 3 roles
-        isLoading: rolesLoading,
-        error: rolesError,
-        categoryIds,
-      });
-    }, [roles, rolesLoading, rolesError, categoryIds]);
 
     const {
       data: locations = [],
@@ -220,7 +178,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       staleTime: 10 * 60 * 1000,
     });
 
-    // Custom validation for roles based on categories
     const validateRoles = (selectedRoles: string[]) => {
       const limit = getRoleLimit;
 
@@ -244,13 +201,10 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       }
     };
 
-    // Custom validation for category selection
     const validateCategorySelection = (currentSelections: string[], newSelection: string) => {
       const { studentId, noExpId } = getSpecialCategoryIds;
 
-      // If trying to add a special category
       if (newSelection === studentId || newSelection === noExpId) {
-        // Can't have both special categories
         if (
           (newSelection === studentId && currentSelections.includes(noExpId || '')) ||
           (newSelection === noExpId && currentSelections.includes(studentId || ''))
@@ -261,7 +215,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
           };
         }
 
-        // Always allow adding special category if under 3 total
         if (currentSelections.length >= 3) {
           return {
             canAdd: false,
@@ -272,11 +225,9 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
         return { canAdd: true };
       }
 
-      // Trying to add a regular category
       const hasStudentExperience = currentSelections.includes(studentId || '');
       const hasNoExperience = currentSelections.includes(noExpId || '');
 
-      // If we have a special category, allow up to 3 total
       if (hasStudentExperience || hasNoExperience) {
         if (currentSelections.length >= 3) {
           return {
@@ -285,8 +236,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
           };
         }
       } else {
-        // No special categories - allow up to 2 regular categories
-        // But if they have exactly 2, they can still add a special category later
         if (currentSelections.length >= 2) {
           return {
             canAdd: false,
@@ -298,69 +247,50 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       return { canAdd: true };
     };
 
-    // Handle category changes - fixed type signature
     const handleCategoryChange = (value: string | string[]) => {
       const newCategoryIds = Array.isArray(value) ? value : [value];
       setValue('categoryIds', newCategoryIds);
 
-      // If reducing categories, check if current roles are still valid
       const currentRoles = roleIds;
       if (currentRoles.length > 0) {
-        // Re-validate roles with new category selection
         setTimeout(() => validateRoles(currentRoles), 100);
       }
     };
 
-    // Handle role changes - fixed to allow selection properly
     const handleRoleChange = (value: string | string[]) => {
       const newRoleIds = Array.isArray(value) ? value : [value];
 
-      // Always allow the change - validation will handle limits
       setValue('roleIds', newRoleIds);
 
-      // Validate after setting the value
       validateRoles(newRoleIds);
     };
 
-    // Expose save and isValid methods to parent component
     useImperativeHandle(ref, () => ({
       save: async (): Promise<boolean> => {
         try {
           const currentData = watch();
-          console.log('🟠 JobInterestStep: Saving form data:', currentData);
 
-          // Validate the form first
           const isValid = await trigger();
           if (!isValid) {
-            console.log('🔴 JobInterestStep: Form validation failed');
             return false;
           }
 
-          // Update the store with current data
           updateJobInterest(currentData);
 
-          // Save to server
           const success = await saveCurrentStep();
-          console.log('🟠 JobInterestStep: Save result:', success);
           return success;
         } catch (error) {
-          console.error('❌ JobInterestStep: Error saving:', error);
           return false;
         }
       },
       isValid: (): boolean => {
-        // Check if form has any errors first
         const hasErrors = Object.keys(errors).length > 0;
         if (hasErrors) {
-          console.log('🔴 JobInterestStep: Has form errors:', errors);
           return false;
         }
 
-        // Get current form data
         const currentData = watch();
-        console.log('🔍 JobInterestStep: Current form data:', currentData);
 
-        // Check each required field specifically
         const checks = {
           hasCategories: (currentData.categoryIds?.length || 0) > 0,
           hasRoles: (currentData.roleIds?.length || 0) > 0,
@@ -368,30 +298,16 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
           hasMandatorySkills: (currentData.mandatorySkills?.length || 0) > 0,
         };
 
-        console.log('🔍 JobInterestStep: Validation checks:', checks);
-
         const isFormValid =
           checks.hasCategories &&
           checks.hasRoles &&
           checks.hasLocation &&
           checks.hasMandatorySkills;
 
-        console.log('🔍 JobInterestStep: Form is valid:', isFormValid);
-
-        if (!isFormValid) {
-          const missing = [];
-          if (!checks.hasCategories) missing.push('Categories');
-          if (!checks.hasRoles) missing.push('Roles');
-          if (!checks.hasLocation) missing.push('Location');
-          if (!checks.hasMandatorySkills) missing.push('Mandatory Skills');
-          console.log('🔴 Missing required fields:', missing);
-        }
-
         return isFormValid;
       },
     }));
 
-    // Loading state
     if (categoriesLoading || locationsLoading || skillsLoading) {
       return (
         <div className={styles.loadingContainer}>
@@ -401,7 +317,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       );
     }
 
-    // Error states
     if (categoriesError || locationsError || skillsError) {
       return (
         <div className={styles.errorContainer}>
@@ -415,7 +330,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
     }
 
     const onSubmit = (data: JobInterest) => {
-      // Final validation before submit
       if (!validateRoles(data.roleIds)) {
         return;
       }
@@ -435,8 +349,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
       }
     };
 
-    console.log('rolesLoading ', rolesLoading);
-
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -451,7 +363,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
 
         <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
           <FormGrid columns={1} gap="lg">
-            {/* Job Categories - Multi-select */}
             <Controller
               name="categoryIds"
               control={control}
@@ -472,7 +383,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
               )}
             />
 
-            {/* Job Roles - Multi-select with dynamic search */}
             <Controller
               name="roleIds"
               control={control}
@@ -503,7 +413,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
               )}
             />
 
-            {/* Location */}
             <Controller
               name="locationId"
               control={control}
@@ -521,9 +430,7 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
               )}
             />
 
-            {/* Skills - Two separate fields with cross-field logic */}
             <FormGrid columns={1} gap="md">
-              {/* Mandatory Skills */}
               <Controller
                 name="mandatorySkills"
                 control={control}
@@ -534,7 +441,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
                     selectedValues={field.value || []}
                     onSelectionChange={(values) => {
                       field.onChange(values);
-                      // Remove any skills that are now in mandatory from advantage
                       const currentAdvantageSkills = watch('advantageSkills') || [];
                       const newAdvantageSkills = currentAdvantageSkills.filter(
                         (skill) => !values.includes(skill),
@@ -552,7 +458,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
                 )}
               />
 
-              {/* Advantage Skills */}
               <Controller
                 name="advantageSkills"
                 control={control}
@@ -568,7 +473,6 @@ export const JobInterestStep = forwardRef<JobInterestStepRef, JobInterestStepPro
                       selectedValues={field.value || []}
                       onSelectionChange={(values) => {
                         field.onChange(values);
-                        // Remove any skills that are now in advantage from mandatory
                         const currentMandatorySkills = watch('mandatorySkills') || [];
                         const newMandatorySkills = currentMandatorySkills.filter(
                           (skill) => !values.includes(skill),
